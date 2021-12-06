@@ -6,6 +6,7 @@ import me.drton.jmavsim.Visualizer3D.ViewTypes;
 import me.drton.jmavsim.Visualizer3D.ZoomModes;
 import me.drton.jmavsim.vehicle.AbstractMulticopter;
 import me.drton.jmavsim.vehicle.Quadcopter;
+import java.util.HashMap;
 
 import org.xml.sax.SAXException;
 
@@ -14,9 +15,13 @@ import javax.swing.SwingUtilities;
 import javax.vecmath.Matrix3d;
 import javax.vecmath.Vector3d;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.json.Json;
+import javax.json.JsonReader;
+import javax.json.JsonObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.lang.Math;
 import java.net.URL;
 import java.util.Arrays;
@@ -26,6 +31,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;;
+
 
 /**
  * User: ton Date: 26.11.13 Time: 12:33
@@ -37,6 +43,12 @@ public class Simulator implements Runnable {
         UDP,
         TCP
     }
+
+    private static final DRONE_CONF_MASS_K = "mass";
+    private static final DRONE_CONF_MAX_THRUST_K = "max_thrust";
+    private static final DRONE_CONF_MAX_TORQUE_K = "max_torque";
+    private static final DRONE_CONF_ARM_LENGTH_K = "arm_length";
+
     private static Port PORT = Port.UDP;
 
     public static boolean   COMMUNICATE_WITH_QGC  = false;   // open UDP port to QGC
@@ -72,6 +84,8 @@ public class Simulator implements Runnable {
     public static final String VEHICLE_MODEL_MC = "models/3dr_arducopter_quad_x.obj";
     public static final String DEFAULT_GIMBAL_MODEL =
         "models/gimbal.png";  // blank for invisible gimbal
+
+    public static HashMap<String, Double> drone_configuration = populate_drone_config(Json.createObjectBuilder().build());
 
     // Set global reference point
     // Zurich Irchel Park: 47.397742, 8.545594, 488m
@@ -146,6 +160,26 @@ public class Simulator implements Runnable {
     private int checkFactor = 2;
     private int slowDownCounter = 0;
     public volatile boolean shutdown = false;
+
+    public static Double value_or_default(JsonObject o, String s, Double value) {
+        if (!o.containsKey(s)) {
+            return value;
+        }
+        return o.getJsonNumber(s).doubleValue();
+    }
+
+    public static HashMap<String, Double> populate_drone_config(JsonObject obj) {
+        Double mass = value_or_default(obj, DRONE_CONF_MASS_K, 0.8);
+        Double max_thrust = value_or_default(obj, DRONE_CONF_MAX_THRUST_K, 4.0);
+        Double max_torque = value_or_default(obj, DRONE_CONF_MAX_TORQUE_K, 0.05);
+        Double arm_length = value_or_default(obj, DRONE_CONF_ARM_LENGTH_K, 0.30 / 2.0);
+        HashMap<String, Double> config = new HashMap<>();
+        config.put(DRONE_CONF_MASS_K, mass);
+        config.put(DRONE_CONF_MAX_THRUST_K, max_thrust);
+        config.put(DRONE_CONF_MAX_TORQUE_K, max_torque);
+        config.put(DRONE_CONF_ARM_LENGTH_K, arm_length);
+        return config;
+    }
 
     public Simulator() throws IOException, InterruptedException {
 
@@ -321,7 +355,12 @@ public class Simulator implements Runnable {
         if (autopilotType == "aq") {
             vehicle = buildAQ_leora();
         } else {
-            vehicle = buildMulticopter();
+            vehicle = buildMulticopter(
+                drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
+                drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
+                drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
+                drone_configuration.get(DRONE_CONF_MASS_K)
+            );
         }
 
         // Create MAVLink HIL system
@@ -438,17 +477,22 @@ public class Simulator implements Runnable {
         paused = !paused;
     }
 
-    private AbstractMulticopter buildMulticopter() {
+    private AbstractMulticopter buildMulticopter(
+        double prop_arm_length_m, // default 0.33 / 2
+        double rotor_full_thrust_n, // default 4
+        double rotor_full_torque_n, // default 0.05
+        double mass_kg // default 0.8
+        ) {
         Vector3d gc = new Vector3d(0.0, 0.0, 0.0);  // gravity center
         AbstractMulticopter vehicle = new Quadcopter(world, vehicle_model, "x", "default",
-                                                     0.33 / 2, 4.0, 0.05, 0.005, gc, SHOW_GUI);
+                                                    prop_arm_length_m , rotor_full_thrust_n, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
         Matrix3d I = new Matrix3d();
         // Moments of inertia
         I.m00 = 0.005;  // X
         I.m11 = 0.005;  // Y
         I.m22 = 0.009;  // Z
         vehicle.setMomentOfInertia(I);
-        vehicle.setMass(0.8);
+        vehicle.setMass(mass_kg);
         vehicle.setDragMove(0.01);
         SimpleSensors sensors = new SimpleSensors();
         sensors.setGPSInterval(50);
@@ -700,7 +744,27 @@ public class Simulator implements Runnable {
                     // if user ONLY passes in -m, monitor all messages.
                     continue;
                 }
-            } else if (arg.equalsIgnoreCase("-udp")) {
+            }
+            else if (arg.equalsIgnoreCase("-drone-config")) {
+                if (i < args.length) {
+                    try {
+                        String nextArg = args[i++];
+                        JsonReader jsonReader = Json.createReader(new StringReader(nextArg));
+                        JsonObject obj = jsonReader.readObject();
+                        drone_configuration = populate_drone_config(obj);
+                        jsonReader.close();
+                        System.out.println("Loaded non-default drone config:");
+                        System.out.println(drone_configuration);
+                    } catch(Exception e) {
+                        System.err.println("Tried to parse -drone-config parameter (JSON Dict) but failed. Aborting...");
+                        return;
+                    }
+                } else {
+                    System.err.println("When passing -drone-config as argument, a json dictionary is expected afterwards.");
+                    return;
+                }
+            }
+            else if (arg.equalsIgnoreCase("-udp")) {
                 PORT = Port.UDP;
                 if (i == args.length) {
                     // only arg is -udp, so use default values.

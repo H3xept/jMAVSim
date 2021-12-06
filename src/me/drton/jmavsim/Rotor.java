@@ -70,6 +70,10 @@ public class Rotor {
         return w * fullThrust;
     }
 
+    public double getW() {
+        return w;
+    }
+
     /**
      * Get current rotor torque [N * m]
      */

@@ -19,9 +19,11 @@
 
     <path id="javac.class.path">
         <pathelement location="lib/annotations.jar"/>
+        <pathelement location="lib/javax.json.jar"/>
     </path>
 
     <path id="javac2.class.path">
+        <pathelement location="lib/javax.json.jar"/>
         <pathelement location="lib/annotations.jar"/>
         <pathelement location="lib/javac2.jar"/>
         <pathelement location="lib/asm4-all.jar"/>
@@ -55,7 +57,7 @@
                 <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
                 <attribute name="Rsrc-Main-Class" value="me.drton.jmavsim.Simulator"/>
                 <attribute name="Class-Path" value="."/>
-                <attribute name="Rsrc-Class-Path" value="./ annotations.jar gluegen-rt-natives-linux-amd64.jar gluegen-rt-natives-linux-i586.jar gluegen-rt-natives-macosx-universal.jar gluegen-rt-natives-windows-amd64.jar gluegen-rt-natives-windows-i586.jar gluegen-rt.jar j3dcore.jar j3dutils.jar joal-natives-linux-amd64.jar joal-natives-linux-i586.jar joal-natives-macosx-universal.jar joal-natives-windows-amd64.jar joal-natives-windows-i586.jar joal.jar jogl-all-natives-linux-amd64.jar jogl-all-natives-linux-i586.jar jogl-all-natives-macosx-universal.jar jogl-all-natives-windows-amd64.jar jogl-all-natives-windows-i586.jar jogl-all.jar jssc.jar vecmath.jar"/>
+                <attribute name="Rsrc-Class-Path" value="./ annotations.jar gluegen-rt-natives-linux-amd64.jar gluegen-rt-natives-linux-i586.jar gluegen-rt-natives-macosx-universal.jar gluegen-rt-natives-windows-amd64.jar gluegen-rt-natives-windows-i586.jar gluegen-rt.jar j3dcore.jar j3dutils.jar joal-natives-linux-amd64.jar joal-natives-linux-i586.jar joal-natives-macosx-universal.jar joal-natives-windows-amd64.jar joal-natives-windows-i586.jar joal.jar jogl-all-natives-linux-amd64.jar jogl-all-natives-linux-i586.jar jogl-all-natives-macosx-universal.jar jogl-all-natives-windows-amd64.jar jogl-all-natives-windows-i586.jar jogl-all.jar jssc.jar vecmath.jar javax.json.jar"/>
             </manifest>
             <fileset dir="${classes.dir}"/>
             <zipfileset src="jar-in-jar-loader.zip"/>
@@ -67,6 +69,7 @@
             <zipfileset dir="lib" includes="jogl-all.jar"/>
             <zipfileset dir="lib" includes="jssc.jar"/>
             <zipfileset dir="lib" includes="vecmath.jar"/>
+            <zipfileset dir="lib" includes="javax.json.jar"/>
             <zipgroupfileset dir="lib" includes="forms_rt.jar"/>
 
             <!-- OS-specific jars (can exclude any you don't need) -->

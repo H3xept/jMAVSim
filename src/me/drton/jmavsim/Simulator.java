@@ -44,10 +44,10 @@ public class Simulator implements Runnable {
         TCP
     }
 
-    private static final DRONE_CONF_MASS_K = "mass";
-    private static final DRONE_CONF_MAX_THRUST_K = "max_thrust";
-    private static final DRONE_CONF_MAX_TORQUE_K = "max_torque";
-    private static final DRONE_CONF_ARM_LENGTH_K = "arm_length";
+    private static final String DRONE_CONF_MASS_K = "mass";
+    private static final String DRONE_CONF_MAX_THRUST_K = "max_thrust";
+    private static final String DRONE_CONF_MAX_TORQUE_K = "max_torque";
+    private static final String DRONE_CONF_ARM_LENGTH_K = "arm_length";
 
     private static Port PORT = Port.UDP;
 

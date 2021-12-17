@@ -31,6 +31,17 @@ public abstract class AbstractVehicle extends DynamicObject implements Reporting
     }
 
     public void report(StringBuilder builder) {
+        builder.append("CONTROL");
+        builder.append(newLine);
+        builder.append("========");
+        builder.append(newLine);
+        for (int i = 0; i < this.control.size(); i++) {
+            builder.append(String.format("#%d: %f", i, this.control.get(i)));
+            builder.append(newLine);
+        }
+        builder.append(newLine);
+        builder.append(newLine);
+
         Vector3d tv = new Vector3d();
         builder.append("VEHICLE");
         builder.append(newLine);
@@ -110,6 +121,7 @@ public abstract class AbstractVehicle extends DynamicObject implements Reporting
 
     public void setControl(List<Double> control) {
         this.control = new ArrayList<Double>(control);
+
     }
 
     public List<Double> getControl() {

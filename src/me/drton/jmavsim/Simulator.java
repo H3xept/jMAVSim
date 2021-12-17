@@ -4,8 +4,10 @@ import me.drton.jmavlib.geo.LatLonAlt;
 import me.drton.jmavlib.mavlink.MAVLinkSchema;
 import me.drton.jmavsim.Visualizer3D.ViewTypes;
 import me.drton.jmavsim.Visualizer3D.ZoomModes;
+import me.drton.jmavsim.vehicle.AbstractFixedWing;
 import me.drton.jmavsim.vehicle.AbstractMulticopter;
 import me.drton.jmavsim.vehicle.Quadcopter;
+import me.drton.jmavsim.vehicle.AVYAera;
 import java.util.HashMap;
 
 import org.xml.sax.SAXException;
@@ -48,6 +50,7 @@ public class Simulator implements Runnable {
     private static final String DRONE_CONF_MAX_THRUST_K = "max_thrust";
     private static final String DRONE_CONF_MAX_TORQUE_K = "max_torque";
     private static final String DRONE_CONF_ARM_LENGTH_K = "arm_length";
+    private static final String DRONE_CONF_TAIL_LENGTH_K = "tail_length";
 
     private static Port PORT = Port.UDP;
 
@@ -142,7 +145,7 @@ public class Simulator implements Runnable {
 
 
     private Visualizer3D visualizer;
-    private AbstractMulticopter vehicle;
+    private AbstractFixedWing vehicle;
     private CameraGimbal2D gimbal;
     private MAVLinkHILSystemBase hilSystem;
     private MAVLinkPort autopilotMavLinkPort;
@@ -172,12 +175,14 @@ public class Simulator implements Runnable {
         Double mass = value_or_default(obj, DRONE_CONF_MASS_K, 0.8);
         Double max_thrust = value_or_default(obj, DRONE_CONF_MAX_THRUST_K, 4.0);
         Double max_torque = value_or_default(obj, DRONE_CONF_MAX_TORQUE_K, 0.05);
+        Double tail_length = value_or_default(obj, DRONE_CONF_TAIL_LENGTH_K, 0.30);
         Double arm_length = value_or_default(obj, DRONE_CONF_ARM_LENGTH_K, 0.30 / 2.0);
         HashMap<String, Double> config = new HashMap<>();
         config.put(DRONE_CONF_MASS_K, mass);
         config.put(DRONE_CONF_MAX_THRUST_K, max_thrust);
         config.put(DRONE_CONF_MAX_TORQUE_K, max_torque);
         config.put(DRONE_CONF_ARM_LENGTH_K, arm_length);
+        config.put(DRONE_CONF_TAIL_LENGTH_K, tail_length);
         return config;
     }
 
@@ -351,17 +356,25 @@ public class Simulator implements Runnable {
             simpleEnvironment.setMagField(DEFAULT_MAG_FIELD);
         }
 
-        // Create vehicle with sensors
-        if (autopilotType == "aq") {
-            vehicle = buildAQ_leora();
-        } else {
-            vehicle = buildMulticopter(
-                drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
-                drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
-                drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
-                drone_configuration.get(DRONE_CONF_MASS_K)
-            );
-        }
+        // // Create vehicle with sensors
+        // if (autopilotType == "aq") {
+        //     vehicle = buildAQ_leora();
+        // } else {
+        //     vehicle = buildMulticopter(
+        //         drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
+        //         drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
+        //         drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
+        //         drone_configuration.get(DRONE_CONF_MASS_K)
+        //     );
+        // }
+
+        vehicle = buildAvyAera(
+            drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
+            drone_configuration.get(DRONE_CONF_TAIL_LENGTH_K),
+            drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
+            drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
+            drone_configuration.get(DRONE_CONF_MASS_K)
+        );
 
         // Create MAVLink HIL system
         // SysId should be the same as autopilot, ComponentId should be different!
@@ -475,6 +488,36 @@ public class Simulator implements Runnable {
 
     public void pauseToggle() {
         paused = !paused;
+    }
+
+    private AbstractFixedWing buildAvyAera(
+        double prop_arm_length_m, // default 0.33 / 2
+        double prop_tail_length_m, // default 0.33
+        double rotor_full_thrust_n, // default 4
+        double rotor_full_torque_n, // default 0.05
+        double mass_kg // default 0.8
+        ) {
+        Vector3d gc = new Vector3d(0.0, 0.0, 0.0);  // gravity center
+        AbstractFixedWing vehicle = new AVYAera(world, vehicle_model, prop_arm_length_m, prop_tail_length_m, rotor_full_thrust_n, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
+        Matrix3d I = new Matrix3d();
+        // Moments of inertia
+        I.m00 = 0.005;  // X
+        I.m11 = 0.005;  // Y
+        I.m22 = 0.009;  // Z
+        vehicle.setMomentOfInertia(I);
+        vehicle.setMass(mass_kg);
+        vehicle.setDragMove(0.01);
+        SimpleSensors sensors = new SimpleSensors();
+        sensors.setGPSInterval(50);
+        sensors.setGPSDelay(200);
+        sensors.setNoise_Acc(0.05f);
+        sensors.setNoise_Gyo(0.01f);
+        sensors.setNoise_Mag(0.005f);
+        sensors.setNoise_Prs(0.1f);
+        vehicle.setSensors(sensors, getSimMillis());
+        //v.setDragRotate(0.1);
+
+        return vehicle;
     }
 
     private AbstractMulticopter buildMulticopter(

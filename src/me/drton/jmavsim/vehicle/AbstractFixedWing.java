@@ -45,6 +45,20 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
             builder.append(newLine);
         }
 
+        builder.append(newLine);
+
+        Vector3d aero_force = this.getAeroForce();
+        builder.append("AERODYNAMICS");
+        builder.append(newLine);
+        builder.append("===========");
+        builder.append(newLine);
+        builder.append(String.format("Aerodynamic force: x:%f y:%f z:%f", aero_force.x, aero_force.y, aero_force.z));
+        builder.append(newLine);
+        builder.append("===========");
+        builder.append(newLine);
+        Vector3d rot_rate = this.getRotationRate();
+        builder.append(String.format("Rotation rate: x:%f y:%f z:%f", rot_rate.x, rot_rate.y, rot_rate.z));
+        builder.append(newLine);
     }
 
     private void reportRotor(StringBuilder builder, int rotorIndex) {
@@ -163,7 +177,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     }
 
     double computeM_Alpha() {
-        Vector3d velocity = this.getVelocity();
+        Vector3d velocity = new Vector3d(this.getVelocity());
         Matrix3d bodyRot = new Matrix3d(this.rotation);
         bodyRot.transpose();
         bodyRot.transform(velocity);
@@ -171,7 +185,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     }
 
     double computeM_Beta(){
-        Vector3d velocity = this.getVelocity();
+        Vector3d velocity = new Vector3d(this.getVelocity());
         Matrix3d bodyRot = new Matrix3d(this.rotation);
         bodyRot.transpose();
         bodyRot.transform(velocity);
@@ -179,7 +193,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     }
 
     double computeVmod(){
-        Vector3d velocity = this.getVelocity();
+        Vector3d velocity = new Vector3d(this.getVelocity());
         Matrix3d bodyRot = new Matrix3d(this.rotation);
         bodyRot.transpose();
         bodyRot.transform(velocity);
@@ -200,7 +214,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
 
         double m_CD = aero_data.m_CD_0 + aero_data.m_CD_alpha*m_alpha + aero_data.m_CD_alpha2*m_alpha*m_alpha +
                 aero_data.m_CD_delta_e2*this.ailerons_control[0]*this.ailerons_control[0] + aero_data.m_CD_beta*m_beta +
-                aero_data.m_CD_beta2*m_beta*m_beta + aero_data.m_CD_q*m_c/(2.*m_Va)*rot_rate.x;
+                aero_data.m_CD_beta2*m_beta*m_beta + aero_data.m_CD_q*m_c/(2.*m_Va)*rot_rate.y;
         double m_CS = aero_data.m_CS_0 + aero_data.m_CS_beta*m_beta + aero_data.m_CS_delta_a*this.ailerons_control[1] + m_b/(2.*m_Va)*
                 (aero_data.m_CS_p*rot_rate.x + aero_data.m_CS_r*rot_rate.z);
         double m_CL = aero_data.m_CL_0 + aero_data.m_CL_alpha*m_alpha + aero_data.m_CL_delta_e*this.ailerons_control[0] +
@@ -234,7 +248,29 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     }
     
     protected Vector3d getAeroTorque() {
-        return new Vector3d();
+        double m_Va = this.computeVmod();
+        double m_alpha = this.computeM_Alpha();
+        double m_beta = this.computeM_Beta();
+        double m_rho = this.computeM_rho();
+        
+        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta)) return new Vector3d();
+
+        Vector3d rot_rate = this.getRotationRate();
+        
+        double m_Cl = aero_data.m_Cl_0 + aero_data.m_Cl_beta*m_beta + aero_data.m_Cl_delta_a*ailerons_control[1] +
+        m_b/(2.*m_Va)*(aero_data.m_Cl_p*rot_rate.x + aero_data.m_Cl_r*rot_rate.z);
+        double m_Cm = aero_data.m_Cm_0 + aero_data.m_Cm_alpha*m_alpha + aero_data.m_Cm_delta_e*ailerons_control[0] +
+                aero_data.m_Cm_q*m_c/(2.*m_Va)*rot_rate.y;
+        double m_Cn = aero_data.m_Cn_0 + aero_data.m_Cn_beta*m_beta + aero_data.m_Cn_delta_a*ailerons_control[1] +
+                m_b/(2.*m_Va)*(aero_data.m_Cn_p*rot_rate.x + aero_data.m_Cn_r*rot_rate.z);
+
+        Vector3d m_M = new Vector3d();
+        m_M.x = 0.5*m_rho*m_Va*m_Va*m_Cl*m_S*m_b;
+        m_M.y = 0.5*m_rho*m_Va*m_Va*m_Cm*m_S*m_c;
+        m_M.z = 0.5*m_rho*m_Va*m_Va*m_Cn*m_S*m_b;
+
+        this.getRotation().transform(m_M);
+        return m_M;
     }
     
     @Override

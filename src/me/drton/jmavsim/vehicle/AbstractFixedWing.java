@@ -59,6 +59,8 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         Vector3d rot_rate = this.getRotationRate();
         builder.append(String.format("Rotation rate: x:%f y:%f z:%f", rot_rate.x, rot_rate.y, rot_rate.z));
         builder.append(newLine);
+        builder.append(String.format("Aileron control 0:%f 1:%f", this.ailerons_control[0], ailerons_control[1]));
+        builder.append(newLine);
     }
 
     private void reportRotor(StringBuilder builder, int rotorIndex) {
@@ -230,6 +232,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         // // Wind to body to earth
         rot.transform(f);
         rotation.transform(f);
+
         return f;
     }
 

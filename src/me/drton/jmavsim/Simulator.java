@@ -51,6 +51,9 @@ public class Simulator implements Runnable {
     private static final String DRONE_CONF_MAX_TORQUE_K = "max_torque";
     private static final String DRONE_CONF_ARM_LENGTH_K = "arm_length";
     private static final String DRONE_CONF_TAIL_LENGTH_K = "tail_length";
+    private static final String DRONE_TYPE_K = "type";
+    private static final int DRONE_TYPE_QUADROTOR_K = 0;
+    private static final int DRONE_TYPE_FIXED_WING_K = 1;
 
     private static Port PORT = Port.UDP;
 
@@ -145,7 +148,7 @@ public class Simulator implements Runnable {
 
 
     private Visualizer3D visualizer;
-    private AbstractFixedWing vehicle;
+    private AbstractMulticopter vehicle;
     private CameraGimbal2D gimbal;
     private MAVLinkHILSystemBase hilSystem;
     private MAVLinkPort autopilotMavLinkPort;
@@ -177,12 +180,14 @@ public class Simulator implements Runnable {
         Double max_torque = value_or_default(obj, DRONE_CONF_MAX_TORQUE_K, 0.05);
         Double tail_length = value_or_default(obj, DRONE_CONF_TAIL_LENGTH_K, 0.30);
         Double arm_length = value_or_default(obj, DRONE_CONF_ARM_LENGTH_K, 0.30 / 2.0);
+        Double drone_type = value_or_default(obj, DRONE_TYPE_K, 0.0);
         HashMap<String, Double> config = new HashMap<>();
         config.put(DRONE_CONF_MASS_K, mass);
         config.put(DRONE_CONF_MAX_THRUST_K, max_thrust);
         config.put(DRONE_CONF_MAX_TORQUE_K, max_torque);
         config.put(DRONE_CONF_ARM_LENGTH_K, arm_length);
         config.put(DRONE_CONF_TAIL_LENGTH_K, tail_length);
+        config.put(DRONE_TYPE_K, drone_type);
         return config;
     }
 
@@ -368,13 +373,21 @@ public class Simulator implements Runnable {
         //     );
         // }
 
-        vehicle = buildAvyAera(
-            drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
-            drone_configuration.get(DRONE_CONF_TAIL_LENGTH_K),
-            drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
-            drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
-            drone_configuration.get(DRONE_CONF_MASS_K)
-        );
+        vehicle = drone_configuration.get(DRONE_TYPE_K) == DRONE_TYPE_QUADROTOR_K ? 
+            buildMulticopter(
+                    drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
+                    drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
+                    drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
+                    drone_configuration.get(DRONE_CONF_MASS_K)
+                )
+                : 
+            buildAvyAera(
+                drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
+                drone_configuration.get(DRONE_CONF_TAIL_LENGTH_K),
+                drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
+                drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
+                drone_configuration.get(DRONE_CONF_MASS_K)
+            );
 
         // Create MAVLink HIL system
         // SysId should be the same as autopilot, ComponentId should be different!
@@ -498,7 +511,7 @@ public class Simulator implements Runnable {
         double mass_kg // default 0.8
         ) {
         Vector3d gc = new Vector3d(0.0, 0.0, 0.0);  // gravity center
-        AbstractFixedWing vehicle = new AVYAera(world, vehicle_model, prop_arm_length_m, prop_tail_length_m, rotor_full_thrust_n, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
+        AbstractFixedWing vehicle = new AVYAera(world, VEHICLE_MODEL_FW, prop_arm_length_m, prop_tail_length_m, rotor_full_thrust_n, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
         Matrix3d I = new Matrix3d();
         // Moments of inertia
         I.m00 = 0.005;  // X

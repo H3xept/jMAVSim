@@ -6,6 +6,7 @@ import me.drton.jmavsim.World;
 
 import javax.vecmath.Vector3d;
 import javax.vecmath.Matrix3d;
+import javax.vecmath.Vector2d;
 
 /**
  * Abstract fixed wing vehicle class
@@ -60,6 +61,24 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         builder.append(String.format("Rotation rate: x:%f y:%f z:%f", rot_rate.x, rot_rate.y, rot_rate.z));
         builder.append(newLine);
         builder.append(String.format("Aileron control 0:%f 1:%f", this.ailerons_control[0], ailerons_control[1]));
+        builder.append(newLine);
+        builder.append(newLine);
+        builder.append(String.format("Angle of attack %f", (this.computeM_Alpha() * 180.0) / 3.14));
+        builder.append(newLine);
+        builder.append(newLine);
+        builder.append(String.format("Angle of sideslip %f", (this.computeM_Beta()* 180.0) / 3.14));
+        builder.append(newLine);
+        
+        Vector3d aero_torque = this.getAeroTorque();
+        builder.append(newLine);
+        builder.append("Aerodynamic torque");
+        builder.append(String.format("%f %f %f", aero_torque.x, aero_torque.y, aero_torque.z));
+        builder.append(newLine);
+
+        builder.append("Velocity");
+        builder.append(newLine);
+        Vector3d v = this.getVelocity();
+        builder.append(String.format("%f %f %f", v.x, v.y, v.z));
         builder.append(newLine);
     }
 
@@ -137,6 +156,10 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
             double c = control.size() > i ? control.get(i+aileron_offset) : 0.0;
             ailerons_control[i] = c;
         }
+        double[] elevons = new double[2];
+        elevons[0] = ailerons_control[0] + ailerons_control[1];
+        elevons[1] = ailerons_control[1] - ailerons_control[0];
+        ailerons_control = elevons;
     }
 
     protected Vector3d getVTOLForce() {
@@ -204,7 +227,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     }
 
     private Vector3d getAeroForce() {
-
+        
         double m_Va = this.computeVmod();
         double m_alpha = this.computeM_Alpha();
         double m_beta = this.computeM_Beta();
@@ -251,15 +274,16 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     }
     
     protected Vector3d getAeroTorque() {
+        
         double m_Va = this.computeVmod();
         double m_alpha = this.computeM_Alpha();
         double m_beta = this.computeM_Beta();
         double m_rho = this.computeM_rho();
         
+        
         if (Double.isNaN(m_alpha) || Double.isNaN(m_beta)) return new Vector3d();
 
         Vector3d rot_rate = this.getRotationRate();
-        
         double m_Cl = aero_data.m_Cl_0 + aero_data.m_Cl_beta*m_beta + aero_data.m_Cl_delta_a*ailerons_control[1] +
         m_b/(2.*m_Va)*(aero_data.m_Cl_p*rot_rate.x + aero_data.m_Cl_r*rot_rate.z);
         double m_Cm = aero_data.m_Cm_0 + aero_data.m_Cm_alpha*m_alpha + aero_data.m_Cm_delta_e*ailerons_control[0] +

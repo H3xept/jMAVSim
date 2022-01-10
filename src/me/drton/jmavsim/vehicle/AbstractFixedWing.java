@@ -157,8 +157,8 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
             ailerons_control[i] = c;
         }
         double[] elevons = new double[2];
-        elevons[0] = ailerons_control[0] + ailerons_control[1];
-        elevons[1] = ailerons_control[1] - ailerons_control[0];
+        elevons[0] = !control.isEmpty() ? (((control.get(6) * 30 - 15) * 3.14) / 180.0) / 2.0: 0; // ailerons_control[0] + ailerons_control[1];
+        elevons[1] = !control.isEmpty() ? -(((control.get(5) * 30 - 15) * 3.14) / 180.0) / 2.0 : 0; // ailerons_control[1] - ailerons_control[0];
         ailerons_control = elevons;
     }
 
@@ -233,7 +233,8 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         double m_beta = this.computeM_Beta();
         double m_rho = this.computeM_rho();
         
-        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta)) return new Vector3d();
+        double fifteen_deg_alpha_in_rad = 0.261799;
+        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta) || Math.abs(m_alpha) >= fifteen_deg_alpha_in_rad) return new Vector3d();
 
         Vector3d rot_rate = this.getRotationRate();
 
@@ -280,8 +281,8 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         double m_beta = this.computeM_Beta();
         double m_rho = this.computeM_rho();
         
-        
-        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta)) return new Vector3d();
+        double fifteen_deg_alpha_in_rad = 0.261799;
+        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta) || Math.abs(m_alpha) >= fifteen_deg_alpha_in_rad) return new Vector3d();
 
         Vector3d rot_rate = this.getRotationRate();
         double m_Cl = aero_data.m_Cl_0 + aero_data.m_Cl_beta*m_beta + aero_data.m_Cl_delta_a*ailerons_control[1] +

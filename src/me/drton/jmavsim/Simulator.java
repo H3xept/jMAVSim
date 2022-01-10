@@ -514,9 +514,12 @@ public class Simulator implements Runnable {
         AbstractFixedWing vehicle = new AVYAera(world, VEHICLE_MODEL_FW, prop_arm_length_m, prop_tail_length_m, rotor_full_thrust_n, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
         Matrix3d I = new Matrix3d();
         // Moments of inertia
-        I.m00 = 0.005;  // X
-        I.m11 = 0.005;  // Y
-        I.m22 = 0.009;  // Z
+        I.m00 = 0.023;  // X
+        I.m11 = 0.02;  // Y
+        I.m22 = 0.033;  // Z
+        I.m02 = 0.02;
+        I.m20 = 0.006;
+
         vehicle.setMomentOfInertia(I);
         vehicle.setMass(mass_kg);
         vehicle.setDragMove(0.01);

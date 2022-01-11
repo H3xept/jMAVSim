@@ -110,6 +110,9 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         builder.append(ReportUtil.vector2str(getPusherRotorPosition(rotorIndex)));
         builder.append(newLine);
 
+        builder.append("Rotation Rate: ");
+        builder.append(ReportUtil.vector2str(this.getRotationRate()));
+        builder.append(newLine);
     }
 
     /**
@@ -173,7 +176,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         for (int i = 0; i < n; i++) {
             f.x += pusher_rotors[i].getThrust();
         }
-        rotation.transform(f);
+        getRotation().transform(f);
         return f;
     }
 
@@ -184,11 +187,11 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         double beta = this.computeM_Beta();
         Matrix3d rot = new Matrix3d();
         rot.m00 = Math.cos(alpha) * Math.cos(beta);
-        rot.m01 = Math.sin(beta);
+        rot.m01 = -Math.sin(beta);
         rot.m02 = Math.sin(alpha) * Math.cos(beta);
-        rot.m10 = -Math.cos(alpha) * Math.sin(beta);
+        rot.m10 = Math.cos(alpha) * Math.sin(beta);
         rot.m11 = Math.cos(beta);
-        rot.m12 = -Math.sin(alpha) * Math.sin(beta);
+        rot.m12 = Math.sin(alpha) * Math.sin(beta);
         rot.m20 = -Math.sin(alpha);
         rot.m22 = Math.cos(alpha);
         return rot;
@@ -204,7 +207,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
 
     double computeM_Alpha() {
         Vector3d velocity = new Vector3d(this.getVelocity());
-        Matrix3d bodyRot = new Matrix3d(this.rotation);
+        Matrix3d bodyRot = new Matrix3d(this.getRotation());
         bodyRot.transpose();
         bodyRot.transform(velocity);
         return Math.atan2(velocity.z,velocity.x);
@@ -212,7 +215,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
 
     double computeM_Beta(){
         Vector3d velocity = new Vector3d(this.getVelocity());
-        Matrix3d bodyRot = new Matrix3d(this.rotation);
+        Matrix3d bodyRot = new Matrix3d(this.getRotation());
         bodyRot.transpose();
         bodyRot.transform(velocity);
         return Math.asin(velocity.y/Math.sqrt(velocity.x*velocity.x+velocity.y*velocity.y+velocity.z*velocity.z));
@@ -220,11 +223,15 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
 
     double computeVmod(){
         Vector3d velocity = new Vector3d(this.getVelocity());
-        Matrix3d bodyRot = new Matrix3d(this.rotation);
+        Matrix3d bodyRot = new Matrix3d(this.getRotation());
         bodyRot.transpose();
         bodyRot.transform(velocity);
         double m_Va = Math.sqrt(velocity.x*velocity.x+velocity.y*velocity.y+velocity.z*velocity.z);
         return m_Va;
+    }
+
+    protected Vector3d getGyroSensor() {
+        return new Vector3d();
     }
 
     private Vector3d getAeroForce() {
@@ -236,7 +243,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         
         if (Double.isNaN(m_alpha) || Double.isNaN(m_beta) || Math.abs(m_alpha) >= maxAngleOfAttack) return new Vector3d();
 
-        Vector3d rot_rate = this.getRotationRate();
+        Vector3d rot_rate = this.getGyroSensor();
         
         double elevator_deflection = -this.surfaceControlToAngle(this.elevator_control);
         double aileron_deflection = this.surfaceControlToAngle(this.ailerons_control[1]);
@@ -258,7 +265,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         rot.transpose();
         // // Wind to body to earth
         rot.transform(f);
-        rotation.transform(f);
+        this.getRotation().transform(f);
 
         return f;
     }
@@ -290,7 +297,8 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         double elevator_deflection = -this.surfaceControlToAngle(this.elevator_control);
         double aileron_deflection = this.surfaceControlToAngle(this.ailerons_control[1]);
 
-        Vector3d rot_rate = this.getRotationRate();
+        Vector3d rot_rate = this.getGyroSensor();
+
         double m_Cl = aero_data.m_Cl_0 + aero_data.m_Cl_beta*m_beta + aero_data.m_Cl_delta_a*aileron_deflection +
         m_b/(2.*m_Va)*(aero_data.m_Cl_p*rot_rate.x + aero_data.m_Cl_r*rot_rate.z);
         double m_Cm = aero_data.m_Cm_0 + aero_data.m_Cm_alpha*m_alpha + aero_data.m_Cm_delta_e*elevator_deflection +
@@ -303,7 +311,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         m_M.y = 0.5*m_rho*m_Va*m_Va*m_Cm*m_S*m_c;
         m_M.z = 0.5*m_rho*m_Va*m_Va*m_Cn*m_S*m_b;
 
-        this.getRotation().transform(m_M);
+        // this.getRotation().transform(m_M);
         return m_M;
     }
     

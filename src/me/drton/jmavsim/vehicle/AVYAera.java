@@ -128,4 +128,8 @@ public class AVYAera extends AbstractFixedWing {
         return this.vtolRotorPositions[i];
     }
     
+    @Override
+    protected Vector3d getGyroSensor() {
+        return this.sensors.getGyro();
+    }
 }

@@ -14,6 +14,9 @@ import javax.vecmath.Vector2d;
 public abstract class AbstractFixedWing extends AbstractMulticopter {
     protected Rotor[] pusher_rotors;
     private double[] ailerons_control = new double[]{0.0, 0.0};
+    private double elevator_control = 0.0;
+
+    private double maxAngleOfAttack = Math.toRadians(30);
 
     private double m_c = 0.0;
     private double m_b = 0.0;
@@ -57,28 +60,19 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         builder.append(newLine);
         builder.append("===========");
         builder.append(newLine);
-        Vector3d rot_rate = this.getRotationRate();
-        builder.append(String.format("Rotation rate: x:%f y:%f z:%f", rot_rate.x, rot_rate.y, rot_rate.z));
+        builder.append(String.format("Aileron control left:%f right:%f (%f rad)", this.ailerons_control[0], ailerons_control[1], surfaceControlToAngle(this.ailerons_control[0])));
         builder.append(newLine);
-        builder.append(String.format("Aileron control 0:%f 1:%f", this.ailerons_control[0], ailerons_control[1]));
-        builder.append(newLine);
+        builder.append(String.format("Elevator control %f (%f rad)", this.elevator_control, surfaceControlToAngle(this.elevator_control)));
         builder.append(newLine);
         builder.append(String.format("Angle of attack %f", (this.computeM_Alpha() * 180.0) / 3.14));
-        builder.append(newLine);
         builder.append(newLine);
         builder.append(String.format("Angle of sideslip %f", (this.computeM_Beta()* 180.0) / 3.14));
         builder.append(newLine);
         
         Vector3d aero_torque = this.getAeroTorque();
-        builder.append(newLine);
         builder.append("Aerodynamic torque");
+        builder.append(newLine);
         builder.append(String.format("%f %f %f", aero_torque.x, aero_torque.y, aero_torque.z));
-        builder.append(newLine);
-
-        builder.append("Velocity");
-        builder.append(newLine);
-        Vector3d v = this.getVelocity();
-        builder.append(String.format("%f %f %f", v.x, v.y, v.z));
         builder.append(newLine);
     }
 
@@ -150,18 +144,25 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
             pusher_rotors[i].setControl(c);
         }
 
-        // Control for ailerons is #5 &&  #6 
+        // Control for ailerons is #5 &&  #6 (aileron left and right)
         final int aileron_offset = rotor_offset + this.pusher_rotors.length;
         for (int i = 0; i < ailerons_control.length; i++) {
             double c = control.size() > i ? control.get(i+aileron_offset) : 0.0;
             ailerons_control[i] = c;
         }
-        double[] elevons = new double[2];
-        elevons[0] = !control.isEmpty() ? (((control.get(6) * 30 - 15) * 3.14) / 180.0) / 2.0: 0; // ailerons_control[0] + ailerons_control[1];
-        elevons[1] = !control.isEmpty() ? -(((control.get(5) * 30 - 15) * 3.14) / 180.0) / 2.0 : 0; // ailerons_control[1] - ailerons_control[0];
-        ailerons_control = elevons;
+        
+        final int elevator_offset = aileron_offset + this.ailerons_control.length;
+        this.elevator_control = control.size() > elevator_offset ? control.get(elevator_offset) : 0.0;
     }
 
+    private double surfaceControlToAngle(double control) {
+        return control * this.maxControlSurfaceDeflection();
+    }
+
+    protected double maxControlSurfaceDeflection() {
+        return Math.toRadians(45);
+    }
+    
     protected Vector3d getVTOLForce() {
         return super.getForce();
     }
@@ -233,17 +234,19 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         double m_beta = this.computeM_Beta();
         double m_rho = this.computeM_rho();
         
-        double fifteen_deg_alpha_in_rad = 0.261799;
-        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta) || Math.abs(m_alpha) >= fifteen_deg_alpha_in_rad) return new Vector3d();
+        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta) || Math.abs(m_alpha) >= maxAngleOfAttack) return new Vector3d();
 
         Vector3d rot_rate = this.getRotationRate();
+        
+        double elevator_deflection = -this.surfaceControlToAngle(this.elevator_control);
+        double aileron_deflection = this.surfaceControlToAngle(this.ailerons_control[1]);
 
         double m_CD = aero_data.m_CD_0 + aero_data.m_CD_alpha*m_alpha + aero_data.m_CD_alpha2*m_alpha*m_alpha +
-                aero_data.m_CD_delta_e2*this.ailerons_control[0]*this.ailerons_control[0] + aero_data.m_CD_beta*m_beta +
+                aero_data.m_CD_delta_e2*elevator_deflection*elevator_deflection + aero_data.m_CD_beta*m_beta +
                 aero_data.m_CD_beta2*m_beta*m_beta + aero_data.m_CD_q*m_c/(2.*m_Va)*rot_rate.y;
-        double m_CS = aero_data.m_CS_0 + aero_data.m_CS_beta*m_beta + aero_data.m_CS_delta_a*this.ailerons_control[1] + m_b/(2.*m_Va)*
+        double m_CS = aero_data.m_CS_0 + aero_data.m_CS_beta*m_beta + aero_data.m_CS_delta_a*aileron_deflection + m_b/(2.*m_Va)*
                 (aero_data.m_CS_p*rot_rate.x + aero_data.m_CS_r*rot_rate.z);
-        double m_CL = aero_data.m_CL_0 + aero_data.m_CL_alpha*m_alpha + aero_data.m_CL_delta_e*this.ailerons_control[0] +
+        double m_CL = aero_data.m_CL_0 + aero_data.m_CL_alpha*m_alpha + aero_data.m_CL_delta_e*elevator_deflection +
                 aero_data.m_CL_q*m_c/(2.*m_Va)*rot_rate.y;
 
         Vector3d f = new Vector3d();
@@ -281,15 +284,18 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         double m_beta = this.computeM_Beta();
         double m_rho = this.computeM_rho();
         
-        double fifteen_deg_alpha_in_rad = 0.261799;
-        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta) || Math.abs(m_alpha) >= fifteen_deg_alpha_in_rad) return new Vector3d();
+        if (Double.isNaN(m_alpha) || Double.isNaN(m_beta) || Math.abs(m_alpha) >= maxAngleOfAttack) return new Vector3d();
+
+                
+        double elevator_deflection = -this.surfaceControlToAngle(this.elevator_control);
+        double aileron_deflection = this.surfaceControlToAngle(this.ailerons_control[1]);
 
         Vector3d rot_rate = this.getRotationRate();
-        double m_Cl = aero_data.m_Cl_0 + aero_data.m_Cl_beta*m_beta + aero_data.m_Cl_delta_a*ailerons_control[1] +
+        double m_Cl = aero_data.m_Cl_0 + aero_data.m_Cl_beta*m_beta + aero_data.m_Cl_delta_a*aileron_deflection +
         m_b/(2.*m_Va)*(aero_data.m_Cl_p*rot_rate.x + aero_data.m_Cl_r*rot_rate.z);
-        double m_Cm = aero_data.m_Cm_0 + aero_data.m_Cm_alpha*m_alpha + aero_data.m_Cm_delta_e*ailerons_control[0] +
+        double m_Cm = aero_data.m_Cm_0 + aero_data.m_Cm_alpha*m_alpha + aero_data.m_Cm_delta_e*elevator_deflection +
                 aero_data.m_Cm_q*m_c/(2.*m_Va)*rot_rate.y;
-        double m_Cn = aero_data.m_Cn_0 + aero_data.m_Cn_beta*m_beta + aero_data.m_Cn_delta_a*ailerons_control[1] +
+        double m_Cn = aero_data.m_Cn_0 + aero_data.m_Cn_beta*m_beta + aero_data.m_Cn_delta_a*aileron_deflection +
                 m_b/(2.*m_Va)*(aero_data.m_Cn_p*rot_rate.x + aero_data.m_Cn_r*rot_rate.z);
 
         Vector3d m_M = new Vector3d();

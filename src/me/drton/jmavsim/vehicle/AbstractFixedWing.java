@@ -317,7 +317,6 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     
     @Override
     protected Vector3d getTorque() {
-        // TODO: calculate pusher propeller torque
         Vector3d total_torque = new Vector3d();
         Vector3d vtol_torque = super.getTorque();
         Vector3d aero_torque = this.getAeroTorque();
@@ -325,5 +324,4 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         total_torque.add(aero_torque);
         return total_torque;
     }
-
 }

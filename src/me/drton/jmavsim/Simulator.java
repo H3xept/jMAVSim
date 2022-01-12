@@ -372,8 +372,9 @@ public class Simulator implements Runnable {
         //         drone_configuration.get(DRONE_CONF_MASS_K)
         //     );
         // }
-
-        vehicle = drone_configuration.get(DRONE_TYPE_K) == DRONE_TYPE_QUADROTOR_K ? 
+        
+        int drone_type = drone_configuration.get(DRONE_TYPE_K).intValue();
+        vehicle = drone_type == DRONE_TYPE_QUADROTOR_K ? 
             buildMulticopter(
                     drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
                     drone_configuration.get(DRONE_CONF_MAX_THRUST_K),

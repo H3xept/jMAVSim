@@ -817,6 +817,7 @@ public class Simulator implements Runnable {
                         System.out.println(drone_configuration);
                     } catch(Exception e) {
                         System.err.println("Tried to parse -drone-config parameter (JSON Dict) but failed. Aborting...");
+                        System.err.println(e);
                         return;
                     }
                 } else {

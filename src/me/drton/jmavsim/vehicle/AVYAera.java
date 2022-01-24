@@ -69,6 +69,7 @@ public class AVYAera extends AbstractFixedWing {
         double armLength,
         double tailLength,
         double rotorThrust,
+        double backRotorThrust,
         double rotorTorque,
         double rotorTimeConst,
         Vector3d rotorsOffset,
@@ -89,7 +90,7 @@ public class AVYAera extends AbstractFixedWing {
         pusherRotorPositions[0] = new Vector3d(-tailLength, 0.0, 0.0);
         pusherRotorRotations[0] = 1;
         Rotor pusherRotor = pusher_rotors[0];
-        pusherRotor.setFullThrust(rotorThrust);
+        pusherRotor.setFullThrust(backRotorThrust);
         pusherRotor.setFullTorque(rotorTorque * pusherRotorRotations[0]);
         pusherRotor.setTimeConstant(rotorTimeConst);
 

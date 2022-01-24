@@ -51,6 +51,7 @@ public class Simulator implements Runnable {
     private static final String DRONE_CONF_MAX_TORQUE_K = "max_torque";
     private static final String DRONE_CONF_ARM_LENGTH_K = "arm_length";
     private static final String DRONE_CONF_TAIL_LENGTH_K = "tail_length";
+    private static final String DRONE_CONF_BACK_PROPELLER_THRUST = "max_back_propeller_thrust";
     private static final String DRONE_TYPE_K = "type";
     private static final int DRONE_TYPE_QUADROTOR_K = 0;
     private static final int DRONE_TYPE_FIXED_WING_K = 1;
@@ -177,6 +178,7 @@ public class Simulator implements Runnable {
     public static HashMap<String, Double> populate_drone_config(JsonObject obj) {
         Double mass = value_or_default(obj, DRONE_CONF_MASS_K, 0.8);
         Double max_thrust = value_or_default(obj, DRONE_CONF_MAX_THRUST_K, 4.0);
+        Double max_back_propeller_thrust = value_or_default(obj, DRONE_CONF_BACK_PROPELLER_THRUST, 8.0);
         Double max_torque = value_or_default(obj, DRONE_CONF_MAX_TORQUE_K, 0.05);
         Double tail_length = value_or_default(obj, DRONE_CONF_TAIL_LENGTH_K, 0.30);
         Double arm_length = value_or_default(obj, DRONE_CONF_ARM_LENGTH_K, 0.30 / 2.0);
@@ -188,6 +190,7 @@ public class Simulator implements Runnable {
         config.put(DRONE_CONF_ARM_LENGTH_K, arm_length);
         config.put(DRONE_CONF_TAIL_LENGTH_K, tail_length);
         config.put(DRONE_TYPE_K, drone_type);
+        config.put(DRONE_CONF_BACK_PROPELLER_THRUST, max_back_propeller_thrust);
         return config;
     }
 
@@ -386,6 +389,7 @@ public class Simulator implements Runnable {
                 drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
                 drone_configuration.get(DRONE_CONF_TAIL_LENGTH_K),
                 drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
+                drone_configuration.get(DRONE_CONF_BACK_PROPELLER_THRUST),
                 drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
                 drone_configuration.get(DRONE_CONF_MASS_K)
             );
@@ -508,11 +512,12 @@ public class Simulator implements Runnable {
         double prop_arm_length_m, // default 0.33 / 2
         double prop_tail_length_m, // default 0.33
         double rotor_full_thrust_n, // default 4
+        double back_rotor_full_thrust,
         double rotor_full_torque_n, // default 0.05
         double mass_kg // default 0.9
         ) {
         Vector3d gc = new Vector3d(0.0, 0.0, 0.0);  // gravity center
-        AbstractFixedWing vehicle = new AVYAera(world, VEHICLE_MODEL_FW, prop_arm_length_m, prop_tail_length_m, rotor_full_thrust_n, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
+        AbstractFixedWing vehicle = new AVYAera(world, VEHICLE_MODEL_FW, prop_arm_length_m, prop_tail_length_m, rotor_full_thrust_n, back_rotor_full_thrust, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
         Matrix3d I = new Matrix3d();
         // Moments of inertia
         double default_mass = 0.9; // Used for inertia scaling

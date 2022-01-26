@@ -6,7 +6,7 @@ import javax.vecmath.Vector3d;
 /**
  * User: ton Date: 28.11.13 Time: 20:35
  */
-public abstract class Environment extends WorldObject implements ReportingObject {
+public abstract class Environment extends WorldObject implements ReportingObject, MissionDataConsumer{
     protected Vector3d g = new Vector3d();  // gravity
     protected Vector3d magField = new Vector3d();
     protected Vector3d wind = new Vector3d();   // base wind speed
@@ -18,10 +18,11 @@ public abstract class Environment extends WorldObject implements ReportingObject
     protected Float magDecl = 0.0f;
     protected double magHIntensity;
     protected double magTIntensity;
+    protected WeatherProvider weather;
 
-
-    public Environment(World world) {
+    public Environment(World world, WeatherProvider weather) {
         super(world);
+        this.weather = weather;
     }
 
     public void report(StringBuilder builder) {
@@ -51,14 +52,15 @@ public abstract class Environment extends WorldObject implements ReportingObject
         builder.append("Wind Cur: ");
         builder.append(ReportUtil.vector2str(windCurrent));
         builder.append(newLine);
-
         builder.append(newLine);
+        this.weather.report(builder);
     }
 
 
     public Vector3d getWind() {
-        return wind;
+        return weather.getWind();
     }
+
     public void setWind(Vector3d wind) {
         this.wind = wind;
     }
@@ -66,6 +68,7 @@ public abstract class Environment extends WorldObject implements ReportingObject
     public Vector3d getWindDeviation() {
         return this.windDeviation;
     }
+
     public void setWindDeviation(Vector3d deviation) {
         this.windDeviation = deviation;
     }
@@ -79,6 +82,12 @@ public abstract class Environment extends WorldObject implements ReportingObject
     public Vector3d getCurrentWind(Vector3d point) {
         return windCurrent;
     }
+
+    // Celsius degs
+    public double getCurrentTemperature() {
+        return weather.getTemperature();
+    }
+    
     public void setCurrentWind(Vector3d wind) {
         this.windCurrent = wind;
     }
@@ -158,6 +167,11 @@ public abstract class Environment extends WorldObject implements ReportingObject
         declMtx.rotZ(decl);
         declMtx.transform(magField);
         setMagField(magField);
+    }
+
+    @Override
+    public void missionDataUpdated(int seq, Vector3d wpLocation) {
+        this.weather.missionDataUpdated(seq, wpLocation);
     }
 
 }

@@ -28,6 +28,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
     private long nextHilStatePub = 0;
     private long timeThrottleCounter = 0;
     private long lastHeartbeatMs = 0;
+    private int mission_item = 0;
 
     /**
      * Create MAVLinkHILSimulator, MAVLink system that sends simulated sensors to autopilot and passes controls from
@@ -140,6 +141,10 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
 
         } else if ("STATUSTEXT".equals(msg.getMsgName())) {
             System.out.println("MSG: " + msg.getString("text"));
+        } else if ("MISSION_ITEM_INT".equals(msg.getMsgName())) {
+            Vector3d item_location = new Vector3d(msg.getDouble("x"), msg.getDouble("y"), msg.getDouble("z"));
+            int current_mission_seq = msg.getInt("seq");
+            this.vehicle.getWorld().getEnvironment().missionDataUpdated(current_mission_seq, item_location);
         }
     }
 

@@ -18,8 +18,8 @@ public class SimpleEnvironment extends Environment {
     private Random random = new Random();
     private long lastTime = 0;
 
-    public SimpleEnvironment(World world) {
-        super(world);
+    public SimpleEnvironment(World world, WeatherProvider provider) {
+        super(world, provider);
         setG(null);
         setMagField(new Vector3d(0.21523, 0.0, 0.42741));
     }
@@ -39,6 +39,9 @@ public class SimpleEnvironment extends Environment {
         }
         double dt = lastTime == 0 ? 0.0 : (t - lastTime) / 1000.0;
         lastTime = t;
+
+        Vector3d new_wind = this.weather.getWind();
+        this.setCurrentWind(new_wind);
         Vector3d r = new Vector3d(windDeviation);
         r.scale(random.nextGaussian());
         Vector3d dev = new Vector3d(wind);

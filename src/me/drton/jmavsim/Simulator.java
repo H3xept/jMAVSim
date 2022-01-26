@@ -225,9 +225,28 @@ public class Simulator implements Runnable {
         if (speedFactorStr != null) {
             speedFactor = Double.parseDouble(speedFactorStr);
         }
-
+        
+        int drone_type = drone_configuration.get(DRONE_TYPE_K).intValue();
+        vehicle = drone_type == DRONE_TYPE_QUADROTOR_K ? 
+            buildMulticopter(
+                    drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
+                    drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
+                    drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
+                    drone_configuration.get(DRONE_CONF_MASS_K)
+                )
+                : 
+            buildAvyAera(
+                drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
+                drone_configuration.get(DRONE_CONF_TAIL_LENGTH_K),
+                drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
+                drone_configuration.get(DRONE_CONF_BACK_PROPELLER_THRUST),
+                drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
+                drone_configuration.get(DRONE_CONF_MASS_K)
+            );
+            
+        WeatherProvider weatherProvider = new WeatherProvider(this.vehicle);
         // Create environment
-        SimpleEnvironment simpleEnvironment = new SimpleEnvironment(world);
+        SimpleEnvironment simpleEnvironment = new SimpleEnvironment(world, weatherProvider);
         //simpleEnvironment.setWind(new Vector3d(0.8, 2.0, 0.0));
         simpleEnvironment.setWindDeviation(new Vector3d(6.0, 8.0, 0.00));
         //simpleEnvironment.setGroundLevel(0.0f);
@@ -363,36 +382,6 @@ public class Simulator implements Runnable {
 
             simpleEnvironment.setMagField(DEFAULT_MAG_FIELD);
         }
-
-        // // Create vehicle with sensors
-        // if (autopilotType == "aq") {
-        //     vehicle = buildAQ_leora();
-        // } else {
-        //     vehicle = buildMulticopter(
-        //         drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
-        //         drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
-        //         drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
-        //         drone_configuration.get(DRONE_CONF_MASS_K)
-        //     );
-        // }
-        
-        int drone_type = drone_configuration.get(DRONE_TYPE_K).intValue();
-        vehicle = drone_type == DRONE_TYPE_QUADROTOR_K ? 
-            buildMulticopter(
-                    drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
-                    drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
-                    drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
-                    drone_configuration.get(DRONE_CONF_MASS_K)
-                )
-                : 
-            buildAvyAera(
-                drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
-                drone_configuration.get(DRONE_CONF_TAIL_LENGTH_K),
-                drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
-                drone_configuration.get(DRONE_CONF_BACK_PROPELLER_THRUST),
-                drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
-                drone_configuration.get(DRONE_CONF_MASS_K)
-            );
 
         // Create MAVLink HIL system
         // SysId should be the same as autopilot, ComponentId should be different!

@@ -39,6 +39,8 @@ public class SimpleEnvironment extends Environment {
         }
         double dt = lastTime == 0 ? 0.0 : (t - lastTime) / 1000.0;
         lastTime = t;
+        
+        this.weather.updateWeather();
 
         Vector3d new_wind = this.weather.getWind();
         this.setCurrentWind(new_wind);

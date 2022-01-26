@@ -1,5 +1,5 @@
 package me.drton.jmavsim;
-
+import me.drton.jmavlib.geo.LatLonAlt;
 import javax.vecmath.Matrix3d;
 import javax.vecmath.Vector3d;
 
@@ -170,8 +170,8 @@ public abstract class Environment extends WorldObject implements ReportingObject
     }
 
     @Override
-    public void missionDataUpdated(int seq, Vector3d wpLocation) {
-        this.weather.missionDataUpdated(seq, wpLocation);
+    public void missionDataUpdated(int seq, Vector3d wpLocation, LatLonAlt globalPosition) {
+        this.weather.missionDataUpdated(seq, wpLocation, globalPosition);
     }
 
 }

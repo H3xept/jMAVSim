@@ -11,6 +11,7 @@ import javax.json.JsonNumber;
 import javax.json.JsonReader;
 import javax.vecmath.Vector3d;
 
+import me.drton.jmavlib.geo.LatLonAlt;
 import me.drton.jmavsim.vehicle.AbstractVehicle;
 import me.drton.jmavsim.ReportingObject;
 
@@ -27,9 +28,10 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     private static final double STANDARD_TEMPERATURE = 25.0;
 
     private AbstractVehicle vehicle;
-    private double currentTemp = STANDARD_TEMPERATURE;
     private Vector3d currentWind = NO_WIND;
     private Vector3d lastWindSetpoint = NO_WIND;
+    private double currentTemp = STANDARD_TEMPERATURE;
+    private double lastTemperatureSetpoint = STANDARD_TEMPERATURE;
     private int currentSeq = -1;
     private Vector3d waypointLocation = new Vector3d(-1,-1,-1);
     private double initialDistance = 0;
@@ -130,18 +132,16 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
 
     public double getTemperature() {
         if (initialDistance == 0) return this.temperatureDataFromSeq(this.currentSeq);
-        double newTemp = this.interpolateScalar(this.currentTemp, this.temperatureDataFromSeq(this.currentSeq), this.getLegCompletion());
-        return newTemp;
+        return currentTemp;
     }
 
     public Vector3d getWind() {
         if (initialDistance == 0) return this.windDataforSeq(this.currentSeq);
-        Vector3d newWind = this.interpolateVectors(this.lastWindSetpoint, this.windDataforSeq(this.currentSeq), this.getLegCompletion());
-        this.currentWind = newWind;
-        return newWind;
+        return currentWind;
     }
 
     private double euclideanDistance(Vector3d a, Vector3d b) {
+        // Horizontal distance only
         return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2) + Math.pow(a.z - b.z, 2));
     }
 
@@ -152,28 +152,36 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     }
 
     @Override
-    public void missionDataUpdated(int seq, Vector3d wpLocation) {
+    public void missionDataUpdated(int seq, Vector3d wpLocation, LatLonAlt globalPosition) {
         if (currentSeq != seq && Math.abs(wpLocation.x) < 5000 && Math.abs(wpLocation.y) < 5000) {
             
-            if (seq > 0) {
-                this.lastWindSetpoint = this.windDataforSeq(seq-1);
-                this.currentTemp =  this.temperatureDataFromSeq(seq-1);
-            } else {
-                this.lastWindSetpoint = NO_WIND;
-                this.currentTemp = STANDARD_TEMPERATURE;
-            }
+            this.lastWindSetpoint = seq > 0 ? this.windDataforSeq(seq - 1) : NO_WIND;
+            this.lastTemperatureSetpoint =  seq > 0 ? this.temperatureDataFromSeq(seq - 1) : STANDARD_TEMPERATURE;
+            
+            Vector3d position = this.vehicle.getPosition();
+            Vector3d localWpPosition = wpLocation;
+            // First waypoint is in global frame (subtracting MLS/Ellipsoidal height) and negating (ENU -> NED)
+            localWpPosition.z = seq != 1 ? localWpPosition.z : globalPosition.alt - (-1*localWpPosition.z);
 
             this.currentSeq = seq;
             // *0.9 to account for acceptance radius (Drone won't traverse the waypoint exactly most of the time)
-            this.initialDistance = this.euclideanDistance(this.vehicle.getPosition(), wpLocation) * 0.9;
-            this.waypointLocation = wpLocation;
-            System.out.println(String.format("Initial distance %f", initialDistance));
-            System.out.println(String.format("Waypoint location %f %f %f", wpLocation.x, wpLocation.y, wpLocation.z));
+            this.initialDistance = this.euclideanDistance(position, localWpPosition) * 0.9;
+            this.waypointLocation = localWpPosition;
+            
+            // DEBUG PRINTS ---
+            // System.out.println(String.format("Current seq %d", seq));
+            // System.out.println(String.format("Drone position %f %f %f", position.x, position.y, position.z));
+            // System.out.println(String.format("Waypoint location %f %f %f", wpLocation.x, wpLocation.y, wpLocation.z));
+            // System.out.println(String.format("Initial distance %f", initialDistance));
+            // ----
         }
     }
 
     @Override
     public void report(StringBuilder builder) {
+        Vector3d windSetpoint = this.windDataforSeq(this.currentSeq);
+        double tempSetpoint = this.temperatureDataFromSeq(this.currentSeq);
+
         builder.append("Weather Provider");
         builder.append(newLine);
         builder.append("================");
@@ -182,10 +190,27 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
         builder.append(newLine);
         builder.append(String.format("Mission leg completion: %f", this.getLegCompletion()));
         builder.append(newLine);
-        Vector3d setpoint = this.windDataforSeq(this.currentSeq);
-        builder.append(String.format("Wind setpoint: %f %f %f", setpoint.x, setpoint.y, setpoint.z));
+        
+        builder.append("================");
+        builder.append(newLine);
+        builder.append(String.format("Wind setpoint: %f %f %f", windSetpoint.x, windSetpoint.y, windSetpoint.z));
         builder.append(newLine);
         builder.append(String.format("Current wind: %f %f %f", currentWind.x, currentWind.y, currentWind.z));
         builder.append(newLine);
+        builder.append("================");
+        builder.append(newLine);
+        builder.append(String.format("Temperature setpoint: %f", tempSetpoint));
+        builder.append(newLine);
+        builder.append(String.format("Current temperature: %f", currentTemp));
+        builder.append(newLine);
+        builder.append(newLine);
+    }
+
+    void updateWeather() {
+        double newTemp = this.interpolateScalar(this.lastTemperatureSetpoint, this.temperatureDataFromSeq(this.currentSeq), this.getLegCompletion());
+        this.currentTemp = newTemp;
+        
+        Vector3d newWind = this.interpolateVectors(this.lastWindSetpoint, this.windDataforSeq(this.currentSeq), this.getLegCompletion());
+        this.currentWind = newWind;
     }
 }

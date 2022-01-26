@@ -4,6 +4,7 @@ import me.drton.jmavlib.conversion.RotationConversion;
 import me.drton.jmavlib.mavlink.MAVLinkMessage;
 import me.drton.jmavlib.mavlink.MAVLinkSchema;
 import me.drton.jmavsim.vehicle.AbstractVehicle;
+import me.drton.jmavlib.geo.LatLonAlt;
 
 import javax.vecmath.*;
 import java.util.Arrays;
@@ -144,7 +145,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
         } else if ("MISSION_ITEM_INT".equals(msg.getMsgName())) {
             Vector3d item_location = new Vector3d(msg.getDouble("x"), msg.getDouble("y"), msg.getDouble("z"));
             int current_mission_seq = msg.getInt("seq");
-            this.vehicle.getWorld().getEnvironment().missionDataUpdated(current_mission_seq, item_location);
+            this.vehicle.getWorld().getEnvironment().missionDataUpdated(current_mission_seq, item_location, this.vehicle.getSensors().getGlobalPosition());
         }
     }
 

@@ -1,5 +1,6 @@
 package me.drton.jmavsim;
 
+import java.io.File;
 import me.drton.jmavlib.geo.LatLonAlt;
 import me.drton.jmavlib.mavlink.MAVLinkSchema;
 import me.drton.jmavsim.Visualizer3D.ViewTypes;
@@ -93,6 +94,7 @@ public class Simulator implements Runnable {
         "models/gimbal.png";  // blank for invisible gimbal
 
     public static HashMap<String, Double> drone_configuration = populate_drone_config(Json.createObjectBuilder().build());
+    private static String weatherDataFileHandle = null;
 
     // Set global reference point
     // Zurich Irchel Park: 47.397742, 8.545594, 488m
@@ -160,14 +162,14 @@ public class Simulator implements Runnable {
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private SystemOutHandler outputHandler;
 //  private int simDelayMax = 500;  // Max delay between simulated and real time to skip samples in simulator, in ms
-
+    
     private long simTimeUs = 0;
     private volatile boolean paused = false;
     private long lastTimeRan = 0;
     private int checkFactor = 2;
     private int slowDownCounter = 0;
     public volatile boolean shutdown = false;
-
+    
     public static Double value_or_default(JsonObject o, String s, Double value) {
         if (!o.containsKey(s)) {
             return value;
@@ -243,8 +245,14 @@ public class Simulator implements Runnable {
                 drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
                 drone_configuration.get(DRONE_CONF_MASS_K)
             );
-            
-        WeatherProvider weatherProvider = new WeatherProvider(this.vehicle);
+        
+        WeatherProvider weatherProvider;
+        if (weatherDataFileHandle != null) {
+            weatherProvider = new WeatherProvider(weatherDataFileHandle, this.vehicle);
+        } else {
+            weatherProvider = new WeatherProvider(this.vehicle);
+        }
+        
         // Create environment
         SimpleEnvironment simpleEnvironment = new SimpleEnvironment(world, weatherProvider);
         //simpleEnvironment.setWind(new Vector3d(0.8, 2.0, 0.0));
@@ -821,6 +829,28 @@ public class Simulator implements Runnable {
                     }
                 } else {
                     System.err.println("When passing -drone-config as argument, a json dictionary is expected afterwards.");
+                    return;
+                }
+            }
+            else if (arg.equalsIgnoreCase("-weather-data")) {
+                if (i < args.length) {
+                    try {
+                        String nextArg = args[i++];
+                        File f = new File(nextArg);
+                        if(f.exists() && !f.isDirectory()) { 
+                            System.out.println(String.format("Weather data file: %s", nextArg));
+                            weatherDataFileHandle = nextArg;
+                        } else {
+                            System.err.println(String.format("Weather data file %s not found! Aborting...", nextArg));
+                            return;
+                        }
+                    } catch(Exception e) {
+                        System.err.println("Tried to parse -weather-data parameter (filename) but failed. Aborting...");
+                        System.err.println(e);
+                        return;
+                    }
+                } else {
+                    System.err.println("When passing -weather-data as argument, a filename is expected afterwards.");
                     return;
                 }
             }

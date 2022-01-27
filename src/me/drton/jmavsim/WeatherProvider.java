@@ -3,7 +3,8 @@ import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
-
+import java.io.File;
+import java.io.FileReader;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -22,8 +23,8 @@ import java.io.StringReader;
 
 
 public class WeatherProvider implements ReportingObject, MissionDataConsumer {
-    private static final String WIND_KEY = "wind_data";
-    private static final String TEMP_KEY = "temperature_data";
+    private static final String WIND_KEY = "wind";
+    private static final String TEMP_KEY = "temperature";
     private static final Vector3d NO_WIND = new Vector3d();
     private static final double STANDARD_TEMPERATURE = 25.0;
 
@@ -70,11 +71,12 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     }
 
     public WeatherProvider(String fileHandle, AbstractVehicle vehicle) {
-        try (JsonReader jsonReader = Json.createReader(new StringReader(fileHandle))){
+        try (JsonReader jsonReader = Json.createReader(new FileReader(new File(fileHandle)))){
             this.obj = jsonReader.readObject();
             this.vehicle = vehicle;
         } catch (Exception e) {
-            System.out.println("Mission items not initialised!");
+            System.out.println("Error in processing weather file. Mission items not initialised!");
+            System.out.println(e);
             System.exit(-42);
         }
     }

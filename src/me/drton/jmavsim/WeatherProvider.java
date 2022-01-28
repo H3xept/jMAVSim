@@ -158,7 +158,7 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     public void missionDataUpdated(int seq, Vector3d wpLocation, LatLonAlt globalPosition) {
         if (currentSeq < seq && Math.abs(wpLocation.x) < 5000 && Math.abs(wpLocation.y) < 5000) {
             
-            int new_seq = currentSeq++;
+            int new_seq = currentSeq+1;
 
             this.lastWindSetpoint = new_seq > 0 ? this.windDataforSeq(new_seq - 1) : NO_WIND;
             this.lastTemperatureSetpoint =  new_seq > 0 ? this.temperatureDataFromSeq(new_seq - 1) : STANDARD_TEMPERATURE;

@@ -65,8 +65,7 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     }
 
     public WeatherProvider(AbstractVehicle vehicle) {
-        System.out.println("Using test data for wind and temperature. Only valid for testing purposes!");
-        this.obj = testData();
+        this.obj = null;
         this.vehicle = vehicle;
     }
 
@@ -82,6 +81,7 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     }
     
     private Vector3d windDataforSeq(int seq) {
+        if (this.obj == null) {  return NO_WIND; }
         if (seq >= 0) {
             try {
                 JsonArray winds = obj.getJsonArray(WIND_KEY);
@@ -102,6 +102,7 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     }
 
     private double temperatureDataFromSeq(int seq) {
+        if (this.obj == null) {  return STANDARD_TEMPERATURE; }
         if (seq >= 0) {
             try {
                 JsonArray temps = obj.getJsonArray(TEMP_KEY);

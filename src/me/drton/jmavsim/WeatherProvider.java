@@ -172,10 +172,10 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
             this.waypointLocation = localWpPosition;
             
             // DEBUG PRINTS ---
-            // System.out.println(String.format("Current seq %d", seq));
-            // System.out.println(String.format("Drone position %f %f %f", position.x, position.y, position.z));
-            // System.out.println(String.format("Waypoint location %f %f %f", wpLocation.x, wpLocation.y, wpLocation.z));
-            // System.out.println(String.format("Initial distance %f", initialDistance));
+            System.out.println(String.format("Current seq %d", seq));
+            System.out.println(String.format("Drone position %f %f %f", position.x, position.y, position.z));
+            System.out.println(String.format("Waypoint location %f %f %f", wpLocation.x, wpLocation.y, wpLocation.z));
+            System.out.println(String.format("Initial distance %f", initialDistance));
             // ----
         }
     }

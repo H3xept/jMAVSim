@@ -159,21 +159,22 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
         if (currentSeq < seq && Math.abs(wpLocation.x) < 5000 && Math.abs(wpLocation.y) < 5000) {
             
             int new_seq = currentSeq++;
-            this.lastWindSetpoint = seq > 0 ? this.windDataforSeq(seq - 1) : NO_WIND;
-            this.lastTemperatureSetpoint =  seq > 0 ? this.temperatureDataFromSeq(seq - 1) : STANDARD_TEMPERATURE;
+
+            this.lastWindSetpoint = new_seq > 0 ? this.windDataforSeq(new_seq - 1) : NO_WIND;
+            this.lastTemperatureSetpoint =  new_seq > 0 ? this.temperatureDataFromSeq(new_seq - 1) : STANDARD_TEMPERATURE;
             
             Vector3d position = this.vehicle.getPosition();
             Vector3d localWpPosition = wpLocation;
             // First waypoint is in global frame (subtracting MLS/Ellipsoidal height) and negating (ENU -> NED)
-            localWpPosition.z = seq != 1 ? localWpPosition.z : globalPosition.alt - (-1*localWpPosition.z);
+            localWpPosition.z = new_seq != 1 ? localWpPosition.z : globalPosition.alt - (-1*localWpPosition.z);
 
-            this.currentSeq = seq;
+            this.currentSeq = new_seq;
             // *0.9 to account for acceptance radius (Drone won't traverse the waypoint exactly most of the time)
             this.initialDistance = this.euclideanDistance(position, localWpPosition) * 0.9;
             this.waypointLocation = localWpPosition;
             
             // DEBUG PRINTS ---
-            System.out.println(String.format("Current seq %d", seq));
+            System.out.println(String.format("Current seq %d", new_seq));
             System.out.println(String.format("Drone position %f %f %f", position.x, position.y, position.z));
             System.out.println(String.format("Waypoint location %f %f %f", wpLocation.x, wpLocation.y, wpLocation.z));
             System.out.println(String.format("Initial distance %f", initialDistance));

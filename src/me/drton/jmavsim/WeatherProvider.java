@@ -27,7 +27,8 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     private static final String TEMP_KEY = "temperature";
     private static final Vector3d NO_WIND = new Vector3d();
     private static final double STANDARD_TEMPERATURE = 25.0;
-
+    private static final String LINE = "================";
+    
     private AbstractVehicle vehicle;
     private Vector3d currentWind = NO_WIND;
     private Vector3d lastWindSetpoint = NO_WIND;
@@ -157,26 +158,27 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
     @Override
     public void missionDataUpdated(int seq, Vector3d wpLocation, LatLonAlt globalPosition) {
         if (currentSeq < seq && Math.abs(wpLocation.x) < 5000 && Math.abs(wpLocation.y) < 5000) {
-            
-            int new_seq = currentSeq+1;
 
-            this.lastWindSetpoint = new_seq > 0 ? this.windDataforSeq(new_seq - 1) : NO_WIND;
-            this.lastTemperatureSetpoint =  new_seq > 0 ? this.temperatureDataFromSeq(new_seq - 1) : STANDARD_TEMPERATURE;
+            this.lastWindSetpoint = seq > 0 ? this.windDataforSeq(seq - 1) : NO_WIND;
+            this.lastTemperatureSetpoint =  seq > 0 ? this.temperatureDataFromSeq(seq - 1) : STANDARD_TEMPERATURE;
             
             Vector3d position = this.vehicle.getPosition();
             Vector3d localWpPosition = wpLocation;
+            if (seq == 1 ) {
+                localWpPosition.z = -(localWpPosition.z - globalPosition.alt);
+            }
             // First waypoint is in global frame (subtracting MLS/Ellipsoidal height) and negating (ENU -> NED)
-            localWpPosition.z = new_seq != 1 ? localWpPosition.z : globalPosition.alt - (-1*localWpPosition.z);
-
-            this.currentSeq = new_seq;
+            
+            this.currentSeq = seq;
             // *0.9 to account for acceptance radius (Drone won't traverse the waypoint exactly most of the time)
             this.initialDistance = this.euclideanDistance(position, localWpPosition) * 0.9;
             this.waypointLocation = localWpPosition;
             
             // DEBUG PRINTS ---
-            System.out.println(String.format("Current seq %d", new_seq));
+            System.out.println(String.format("Current seq %d", seq));
+            System.out.println(String.format("Global position alt %f", globalPosition.alt));
             System.out.println(String.format("Drone position %f %f %f", position.x, position.y, position.z));
-            System.out.println(String.format("Waypoint location %f %f %f", wpLocation.x, wpLocation.y, wpLocation.z));
+            System.out.println(String.format("Waypoint location %f %f %f", localWpPosition.x, localWpPosition.y, localWpPosition.z));
             System.out.println(String.format("Initial distance %f", initialDistance));
             // ----
         }
@@ -184,25 +186,25 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
 
     @Override
     public void report(StringBuilder builder) {
+        
         Vector3d windSetpoint = this.windDataforSeq(this.currentSeq);
         double tempSetpoint = this.temperatureDataFromSeq(this.currentSeq);
-
         builder.append("Weather Provider");
         builder.append(newLine);
-        builder.append("================");
+        builder.append(LINE);
         builder.append(newLine);
         builder.append(String.format("Current mission item: %d", this.currentSeq));
         builder.append(newLine);
         builder.append(String.format("Mission leg completion: %f", this.getLegCompletion()));
         builder.append(newLine);
         
-        builder.append("================");
+        builder.append(LINE);
         builder.append(newLine);
         builder.append(String.format("Wind setpoint: %f %f %f", windSetpoint.x, windSetpoint.y, windSetpoint.z));
         builder.append(newLine);
         builder.append(String.format("Current wind: %f %f %f", currentWind.x, currentWind.y, currentWind.z));
         builder.append(newLine);
-        builder.append("================");
+        builder.append(LINE);
         builder.append(newLine);
         builder.append(String.format("Temperature setpoint: %f", tempSetpoint));
         builder.append(newLine);

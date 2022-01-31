@@ -323,7 +323,8 @@ public class Simulator implements Runnable {
             "HIL_CONTROLS",
             "HIL_ACTUATOR_CONTROLS",
             "HIL_GPS",
-            "HIL_STATE_QUATERNION"
+            "HIL_STATE_QUATERNION",
+            "HEARTBEAT"
         };
 
         if (COMMUNICATE_WITH_QGC) {

@@ -199,10 +199,9 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     }
 
     double computeM_rho(){
-        System.out.println(this.getDensity());
         return this.getDensity();
     }
-    
+
     double computeM_Alpha() {
         Vector3d velocity = new Vector3d(this.getVelocity());
         Matrix3d bodyRot = new Matrix3d(this.getRotation());

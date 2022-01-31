@@ -289,6 +289,15 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
             msg_system_time.set("time_boot_ms", tu / 1000);
             sendMessage(msg_system_time);
         }
+
+        if (timeThrottleCounter % 1000 == 0) {
+            // Send temperature data through the
+            // HYGROMETER_SENSOR message
+            double temperature = vehicle.getWorld().getEnvironment().getCurrentTemperature();
+            MAVLinkMessage message = new MAVLinkMessage(schema, "HYGROMETER_SENSOR", sysId, componentId, protocolVersion);
+            message.set("temperature", temperature);
+            sendMessage(message);
+        }
     }
 
     private void reset() {

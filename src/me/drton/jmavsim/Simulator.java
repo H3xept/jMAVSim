@@ -322,7 +322,6 @@ public class Simulator implements Runnable {
         String[] skipMessages = {
             "HIL_CONTROLS",
             "HIL_ACTUATOR_CONTROLS",
-            "HIL_SENSOR",
             "HIL_GPS",
             "HIL_STATE_QUATERNION"
         };

@@ -191,6 +191,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
 
         // sensor source bitmask
         int sensor_source = 0;
+        double temperature = vehicle.getWorld().getEnvironment().getCurrentTemperature();
 
         msg_sensor.set("time_usec", tu);
         Vector3d tv = sensors.getAcc();
@@ -207,10 +208,11 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
         msg_sensor.set("xmag", tv.x);
         msg_sensor.set("ymag", tv.y);
         msg_sensor.set("zmag", tv.z);
+        msg_sensor.set("temperature", temperature);
         sensor_source |= 0b111000000;
         msg_sensor.set("pressure_alt", sensors.getPressureAlt());
         msg_sensor.set("abs_pressure", sensors.getPressure() * 0.01);  // Pa to millibar
-        sensor_source |= 0b1101000000000;
+        sensor_source |= 0b1111000000000;
         if (sensors.isReset()) {
             msg_sensor.set("fields_updated", (1 << 31));
             sensors.setReset(false);
@@ -288,15 +290,6 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
             msg_system_time.set("time_unix_usec", cal.getTimeInMillis() * 1000);
             msg_system_time.set("time_boot_ms", tu / 1000);
             sendMessage(msg_system_time);
-        }
-
-        if (timeThrottleCounter % 1000 == 0) {
-            // Send temperature data through the
-            // HYGROMETER_SENSOR message
-            double temperature = vehicle.getWorld().getEnvironment().getCurrentTemperature();
-            MAVLinkMessage message = new MAVLinkMessage(schema, "HYGROMETER_SENSOR", sysId, componentId, protocolVersion);
-            message.set("temperature", temperature);
-            sendMessage(message);
         }
     }
 

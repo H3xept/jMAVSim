@@ -192,7 +192,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
         // sensor source bitmask
         int sensor_source = 0;
         double temperature = vehicle.getWorld().getEnvironment().getCurrentTemperature();
-
+        
         msg_sensor.set("time_usec", tu);
         Vector3d tv = sensors.getAcc();
         msg_sensor.set("xacc", tv.x);
@@ -212,7 +212,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
         sensor_source |= 0b111000000;
         msg_sensor.set("pressure_alt", sensors.getPressureAlt());
         msg_sensor.set("abs_pressure", sensors.getPressure() * 0.01);  // Pa to millibar
-        sensor_source |= 0b1111000000000;
+        sensor_source |= 0b1101000000000;
         if (sensors.isReset()) {
             msg_sensor.set("fields_updated", (1 << 31));
             sensors.setReset(false);

@@ -2,6 +2,7 @@ package me.drton.jmavsim.vehicle;
 
 import me.drton.jmavsim.ReportUtil;
 import me.drton.jmavsim.Rotor;
+import me.drton.jmavsim.SimpleEnvironment;
 import me.drton.jmavsim.World;
 
 import javax.vecmath.Vector3d;
@@ -198,13 +199,10 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     }
 
     double computeM_rho(){
-        return 1.225;
+        System.out.println(this.getDensity());
+        return this.getDensity();
     }
-
-    double computeT_rho(){
-        return 288.15;
-    }
-
+    
     double computeM_Alpha() {
         Vector3d velocity = new Vector3d(this.getVelocity());
         Matrix3d bodyRot = new Matrix3d(this.getRotation());
@@ -223,6 +221,8 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
 
     double computeVmod(){
         Vector3d velocity = new Vector3d(this.getVelocity());
+        velocity.sub(getWorld().getEnvironment().getCurrentWind(position));
+
         Matrix3d bodyRot = new Matrix3d(this.getRotation());
         bodyRot.transpose();
         bodyRot.transform(velocity);
@@ -232,6 +232,14 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
 
     protected Vector3d getGyroSensor() {
         return new Vector3d();
+    }
+
+    protected double getDensity() {
+        double tempC = this.getWorld().getEnvironment().getCurrentTemperature();
+        double tempK  = (tempC + 273.15);
+        double alt = (tempK - 288.15)/(-6.5);
+        double rGamma = 287.053;
+        return SimpleEnvironment.alt2baro(alt) / (rGamma * tempK);
     }
 
     private Vector3d getAeroForce() {

@@ -164,10 +164,11 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
             
             Vector3d position = this.vehicle.getPosition();
             Vector3d localWpPosition = wpLocation;
-            if (seq == 1 ) {
-                localWpPosition.z = -(localWpPosition.z - globalPosition.alt);
-            }
+            
             // First waypoint is in global frame (subtracting MLS/Ellipsoidal height) and negating (ENU -> NED)
+            if (seq == 0) {
+                localWpPosition.z = -(Math.abs(localWpPosition.z) - globalPosition.alt);
+            }
             
             this.currentSeq = seq;
             // *0.9 to account for acceptance radius (Drone won't traverse the waypoint exactly most of the time)
@@ -175,7 +176,6 @@ public class WeatherProvider implements ReportingObject, MissionDataConsumer {
             this.waypointLocation = localWpPosition;
             
             // DEBUG PRINTS ---
-            System.out.println(String.format("Current seq %d", seq));
             System.out.println(String.format("Global position alt %f", globalPosition.alt));
             System.out.println(String.format("Drone position %f %f %f", position.x, position.y, position.z));
             System.out.println(String.format("Waypoint location %f %f %f", localWpPosition.x, localWpPosition.y, localWpPosition.z));

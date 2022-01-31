@@ -60,7 +60,7 @@ public class Simulator implements Runnable {
     private static Port PORT = Port.UDP;
 
     public static boolean   COMMUNICATE_WITH_QGC  = false;   // open UDP port to QGC
-    public static boolean   COMMUNICATE_WITH_SDK  = false;   // open UDP port to SDK
+    public static boolean   COMMUNICATE_WITH_SDK  = true;   // open UDP port to SDK
     public static boolean   DO_MAG_FIELD_LOOKUP   =
         false;  // perform online mag incl/decl lookup for current position
     public static boolean   USE_GIMBAL            =

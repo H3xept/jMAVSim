@@ -19,6 +19,7 @@ public abstract class Environment extends WorldObject implements ReportingObject
     protected double magHIntensity;
     protected double magTIntensity;
     protected WeatherProvider weather;
+    private Boolean landing_height_updated = false;
 
     public Environment(World world, WeatherProvider weather) {
         super(world);
@@ -172,6 +173,19 @@ public abstract class Environment extends WorldObject implements ReportingObject
     @Override
     public void missionDataUpdated(int seq, Vector3d wpLocation, LatLonAlt globalPosition) {
         this.weather.missionDataUpdated(seq, wpLocation, globalPosition);
+        if(seq > 1 && !this.landing_height_updated) {
+            try {
+                double landing_ground_height = Double.parseDouble(System.getenv("PX4_LANDING_HEIGHT"));
+                System.out.println("Landing height set to: "+landing_ground_height+" MSL.");
+                this.setGroundLevel(landing_ground_height);
+            } catch(Exception e) {
+                System.out.println("No landing height specified (ENV: PX4_LANDING_HEIGHT is undefined).");
+                System.out.println("Landing height will be NED frame origin height.");
+            } finally {
+                this.landing_height_updated = true;
+            }
+
+        }
     }
 
 }

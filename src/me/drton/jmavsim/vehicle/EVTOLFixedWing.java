@@ -16,10 +16,6 @@ public class EVTOLFixedWing extends AbstractFixedWing {
     private final int VTOL_ROTOR_N = 4;
     private final int PUSHER_ROTOR_N = 1;
 
-    // AERO COEFFICIENTS
-    private static final double M_C = 0.26;
-    private static final double M_B = 0.9;
-    private static final double M_S = 0.22;
 
     // -----
 
@@ -85,7 +81,7 @@ public class EVTOLFixedWing extends AbstractFixedWing {
         Vector3d rotorsOffset,
         boolean showGui
         ) {
-        super(world, modelName, showGui, M_C, M_B, M_S, aeroData);
+        super(world, modelName, showGui, aeroData.mean_aerodynamic_chord, aeroData.wing_span, aeroData.wing_area, aeroData);
 
         int i;
 

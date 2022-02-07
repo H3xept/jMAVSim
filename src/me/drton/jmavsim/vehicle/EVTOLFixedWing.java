@@ -15,7 +15,7 @@ public class EVTOLFixedWing extends AbstractFixedWing {
 
     private final int VTOL_ROTOR_N = 4;
     private final int PUSHER_ROTOR_N = 1;
-
+    private static final String DIVIDER = "=======================";
 
     // -----
 

@@ -60,4 +60,44 @@ public class APM {
         this.m_Cn_delta_r = m.containsKey("m_Cn_delta_r") ? m.get("m_Cn_delta_r") : 0.0;
     }
 
+    public String describe() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("wing_span: " + this.wing_span);
+        builder.append("wing_area: " + this.wing_area);
+        builder.append("mean_aerodynamic_chord: " + this.mean_aerodynamic_chord);
+        builder.append("m_CD_0: " + this.m_CD_0);
+        builder.append("m_CS_0: " + this.m_CS_0);
+        builder.append("m_CL_0: " + this.m_CL_0);
+        builder.append("m_Cl_0: " + this.m_Cl_0);
+        builder.append("m_Cm_0: " + this.m_Cm_0);
+        builder.append("m_Cn_0: " + this.m_Cn_0);
+        builder.append("m_CD_alpha: " + this.m_CD_alpha);
+        builder.append("m_CD_alpha2: " + this.m_CD_alpha2);
+        builder.append("m_CD_beta: " + this.m_CD_beta);
+        builder.append("m_CD_beta2: " + this.m_CD_beta2);
+        builder.append("m_CD_q: " + this.m_CD_q);
+        builder.append("m_CD_delta_e2: " + this.m_CD_delta_e2);
+        builder.append("m_CL_alpha: " + this.m_CL_alpha);
+        builder.append("m_CL_q: " + this.m_CL_q);
+        builder.append("m_CL_delta_e: " + this.m_CL_delta_e);
+        builder.append("m_CS_beta: " + this.m_CS_beta);
+        builder.append("m_CS_p: " + this.m_CS_p);
+        builder.append("m_CS_r: " + this.m_CS_r);
+        builder.append("m_CS_delta_a: " + this.m_CS_delta_a);
+        builder.append("m_CS_delta_r: " + this.m_CS_delta_r);
+        builder.append("m_Cl_beta: " + this.m_Cl_beta);
+        builder.append("m_Cl_p: " + this.m_Cl_p);
+        builder.append("m_Cl_r: " + this.m_Cl_r);
+        builder.append("m_Cl_delta_a: " + this.m_Cl_delta_a);
+        builder.append("m_Cl_delta_r: " + this.m_Cl_delta_r);
+        builder.append("m_Cm_alpha: " + this.m_Cm_alpha);
+        builder.append("m_Cm_delta_e: " + this.m_Cm_delta_e);
+        builder.append("m_Cm_q: " + this.m_Cm_q);
+        builder.append("m_Cn_beta: " + this.m_Cn_beta);
+        builder.append("m_Cn_p: " + this.m_Cn_p);
+        builder.append("m_Cn_r: " + this.m_Cn_r);
+        builder.append("m_Cn_delta_a: " + this.m_Cn_delta_a);
+        builder.append("m_Cn_delta_r: " + this.m_Cn_delta_r);
+        return builder.toString();
+    }
 }

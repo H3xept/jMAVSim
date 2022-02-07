@@ -28,11 +28,7 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     private double elevator_control = 0.0;
 
     private double maxAngleOfAttack = Math.toRadians(30);
-
-    private double m_c = 0.0;
-    private double m_b = 0.0;
-    private double m_S = 0.0;
-    private APM aero_data;
+    protected APM aero_data;
 
     protected static APM parseAeroData(JsonObject obj) {
         return new APM(Map.ofEntries(
@@ -75,12 +71,9 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         ));
     }
     
-    public AbstractFixedWing(World world, String modelName, boolean showGui, double m_c, double m_b, double m_S, APM aero_data) {
+    public AbstractFixedWing(World world, String modelName, boolean showGui, APM aero_data) {
         super(world, modelName, showGui);
 
-        this.m_c = m_c;
-        this.m_b = m_b;
-        this.m_S = m_S;
         this.aero_data = aero_data;
 
         pusher_rotors = new Rotor[getPusherRotorsNum()];
@@ -308,16 +301,16 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
 
         double m_CD = aero_data.m_CD_0 + aero_data.m_CD_alpha*m_alpha + aero_data.m_CD_alpha2*m_alpha*m_alpha +
                 aero_data.m_CD_delta_e2*elevator_deflection*elevator_deflection + aero_data.m_CD_beta*m_beta +
-                aero_data.m_CD_beta2*m_beta*m_beta + aero_data.m_CD_q*m_c/(2.*m_Va)*rot_rate.y;
-        double m_CS = aero_data.m_CS_0 + aero_data.m_CS_beta*m_beta + aero_data.m_CS_delta_a*aileron_deflection + m_b/(2.*m_Va)*
+                aero_data.m_CD_beta2*m_beta*m_beta + aero_data.m_CD_q*this.aero_data.mean_aerodynamic_chord/(2.*m_Va)*rot_rate.y;
+        double m_CS = aero_data.m_CS_0 + aero_data.m_CS_beta*m_beta + aero_data.m_CS_delta_a*aileron_deflection + this.aero_data.wing_span/(2.*m_Va)*
                 (aero_data.m_CS_p*rot_rate.x + aero_data.m_CS_r*rot_rate.z);
         double m_CL = aero_data.m_CL_0 + aero_data.m_CL_alpha*m_alpha + aero_data.m_CL_delta_e*elevator_deflection +
-                aero_data.m_CL_q*m_c/(2.*m_Va)*rot_rate.y;
+                aero_data.m_CL_q*this.aero_data.mean_aerodynamic_chord/(2.*m_Va)*rot_rate.y;
 
         Vector3d f = new Vector3d();
-        f.x = -0.5*m_rho*m_Va*m_Va*m_S*m_CD;
-        f.y = 0.5*m_rho*m_Va*m_Va*m_S*m_CS;
-        f.z = -0.5*m_rho*m_Va*m_Va*m_S*m_CL;
+        f.x = -0.5*m_rho*m_Va*m_Va*this.aero_data.wing_area*m_CD;
+        f.y = 0.5*m_rho*m_Va*m_Va*this.aero_data.wing_area*m_CS;
+        f.z = -0.5*m_rho*m_Va*m_Va*this.aero_data.wing_area*m_CL;
         
         Matrix3d rot = this.body2wind();
         rot.transpose();
@@ -358,16 +351,16 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         Vector3d rot_rate = this.getGyroSensor();
 
         double m_Cl = aero_data.m_Cl_0 + aero_data.m_Cl_beta*m_beta + aero_data.m_Cl_delta_a*aileron_deflection +
-        m_b/(2.*m_Va)*(aero_data.m_Cl_p*rot_rate.x + aero_data.m_Cl_r*rot_rate.z);
+        this.aero_data.wing_span/(2.*m_Va)*(aero_data.m_Cl_p*rot_rate.x + aero_data.m_Cl_r*rot_rate.z);
         double m_Cm = aero_data.m_Cm_0 + aero_data.m_Cm_alpha*m_alpha + aero_data.m_Cm_delta_e*elevator_deflection +
-                aero_data.m_Cm_q*m_c/(2.*m_Va)*rot_rate.y;
+                aero_data.m_Cm_q*this.aero_data.mean_aerodynamic_chord/(2.*m_Va)*rot_rate.y;
         double m_Cn = aero_data.m_Cn_0 + aero_data.m_Cn_beta*m_beta + aero_data.m_Cn_delta_a*aileron_deflection +
-                m_b/(2.*m_Va)*(aero_data.m_Cn_p*rot_rate.x + aero_data.m_Cn_r*rot_rate.z);
+        this.aero_data.wing_span/(2.*m_Va)*(aero_data.m_Cn_p*rot_rate.x + aero_data.m_Cn_r*rot_rate.z);
 
         Vector3d m_M = new Vector3d();
-        m_M.x = 0.5*m_rho*m_Va*m_Va*m_Cl*m_S*m_b;
-        m_M.y = 0.5*m_rho*m_Va*m_Va*m_Cm*m_S*m_c;
-        m_M.z = 0.5*m_rho*m_Va*m_Va*m_Cn*m_S*m_b;
+        m_M.x = 0.5*m_rho*m_Va*m_Va*m_Cl*this.aero_data.wing_area*this.aero_data.wing_span;
+        m_M.y = 0.5*m_rho*m_Va*m_Va*m_Cm*this.aero_data.wing_area*this.aero_data.mean_aerodynamic_chord;
+        m_M.z = 0.5*m_rho*m_Va*m_Va*m_Cn*this.aero_data.wing_area*this.aero_data.wing_span;
 
         // this.getRotation().transform(m_M);
         return m_M;

@@ -7,8 +7,10 @@ import me.drton.jmavsim.Visualizer3D.ViewTypes;
 import me.drton.jmavsim.Visualizer3D.ZoomModes;
 import me.drton.jmavsim.vehicle.AbstractFixedWing;
 import me.drton.jmavsim.vehicle.AbstractMulticopter;
+import me.drton.jmavsim.vehicle.AbstractVehicle;
 import me.drton.jmavsim.vehicle.Quadcopter;
-import me.drton.jmavsim.vehicle.AVYAera;
+import me.drton.jmavsim.vehicle.VehicleFactory;
+import me.drton.jmavsim.vehicle.EVTOLFixedWing;
 import java.util.HashMap;
 
 import org.xml.sax.SAXException;
@@ -47,15 +49,7 @@ public class Simulator implements Runnable {
         TCP
     }
 
-    private static final String DRONE_CONF_MASS_K = "mass";
-    private static final String DRONE_CONF_MAX_THRUST_K = "max_thrust";
-    private static final String DRONE_CONF_MAX_TORQUE_K = "max_torque";
-    private static final String DRONE_CONF_ARM_LENGTH_K = "arm_length";
-    private static final String DRONE_CONF_TAIL_LENGTH_K = "tail_length";
-    private static final String DRONE_CONF_BACK_PROPELLER_THRUST = "max_back_propeller_thrust";
-    private static final String DRONE_TYPE_K = "type";
-    private static final int DRONE_TYPE_QUADROTOR_K = 0;
-    private static final int DRONE_TYPE_FIXED_WING_K = 1;
+    private static String drone_config_file = null;
 
     private static Port PORT = Port.UDP;
 
@@ -93,7 +87,6 @@ public class Simulator implements Runnable {
     public static final String DEFAULT_GIMBAL_MODEL =
         "models/gimbal.png";  // blank for invisible gimbal
 
-    public static HashMap<String, Double> drone_configuration = populate_drone_config(Json.createObjectBuilder().build());
     private static String weatherDataFileHandle = null;
 
     // Set global reference point
@@ -151,7 +144,7 @@ public class Simulator implements Runnable {
 
 
     private Visualizer3D visualizer;
-    private AbstractMulticopter vehicle;
+    private AbstractVehicle vehicle;
     private CameraGimbal2D gimbal;
     private MAVLinkHILSystemBase hilSystem;
     private MAVLinkPort autopilotMavLinkPort;
@@ -170,31 +163,7 @@ public class Simulator implements Runnable {
     private int slowDownCounter = 0;
     public volatile boolean shutdown = false;
     
-    public static Double value_or_default(JsonObject o, String s, Double value) {
-        if (!o.containsKey(s)) {
-            return value;
-        }
-        return o.getJsonNumber(s).doubleValue();
-    }
-
-    public static HashMap<String, Double> populate_drone_config(JsonObject obj) {
-        Double mass = value_or_default(obj, DRONE_CONF_MASS_K, 0.8);
-        Double max_thrust = value_or_default(obj, DRONE_CONF_MAX_THRUST_K, 4.0);
-        Double max_back_propeller_thrust = value_or_default(obj, DRONE_CONF_BACK_PROPELLER_THRUST, 8.0);
-        Double max_torque = value_or_default(obj, DRONE_CONF_MAX_TORQUE_K, 0.05);
-        Double tail_length = value_or_default(obj, DRONE_CONF_TAIL_LENGTH_K, 0.30);
-        Double arm_length = value_or_default(obj, DRONE_CONF_ARM_LENGTH_K, 0.30 / 2.0);
-        Double drone_type = value_or_default(obj, DRONE_TYPE_K, 0.0);
-        HashMap<String, Double> config = new HashMap<>();
-        config.put(DRONE_CONF_MASS_K, mass);
-        config.put(DRONE_CONF_MAX_THRUST_K, max_thrust);
-        config.put(DRONE_CONF_MAX_TORQUE_K, max_torque);
-        config.put(DRONE_CONF_ARM_LENGTH_K, arm_length);
-        config.put(DRONE_CONF_TAIL_LENGTH_K, tail_length);
-        config.put(DRONE_TYPE_K, drone_type);
-        config.put(DRONE_CONF_BACK_PROPELLER_THRUST, max_back_propeller_thrust);
-        return config;
-    }
+    private VehicleFactory factory;
 
     public Simulator() throws IOException, InterruptedException {
 
@@ -228,24 +197,9 @@ public class Simulator implements Runnable {
             speedFactor = Double.parseDouble(speedFactorStr);
         }
         
-        int drone_type = drone_configuration.get(DRONE_TYPE_K).intValue();
-        vehicle = drone_type == DRONE_TYPE_QUADROTOR_K ? 
-            buildMulticopter(
-                    drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
-                    drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
-                    drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
-                    drone_configuration.get(DRONE_CONF_MASS_K)
-                )
-                : 
-            buildAvyAera(
-                drone_configuration.get(DRONE_CONF_ARM_LENGTH_K),
-                drone_configuration.get(DRONE_CONF_TAIL_LENGTH_K),
-                drone_configuration.get(DRONE_CONF_MAX_THRUST_K),
-                drone_configuration.get(DRONE_CONF_BACK_PROPELLER_THRUST),
-                drone_configuration.get(DRONE_CONF_MAX_TORQUE_K),
-                drone_configuration.get(DRONE_CONF_MASS_K)
-            );
-        
+        this.factory = new VehicleFactory(world, SHOW_GUI);
+        vehicle = this.factory.vehicleFromFile(drone_config_file);
+            
         WeatherProvider weatherProvider;
         if (weatherDataFileHandle != null) {
             weatherProvider = new WeatherProvider(weatherDataFileHandle, this.vehicle);
@@ -255,9 +209,7 @@ public class Simulator implements Runnable {
         
         // Create environment
         SimpleEnvironment simpleEnvironment = new SimpleEnvironment(world, weatherProvider);
-        //simpleEnvironment.setWind(new Vector3d(0.8, 2.0, 0.0));
         simpleEnvironment.setWindDeviation(new Vector3d(6.0, 8.0, 0.00));
-        //simpleEnvironment.setGroundLevel(0.0f);
         world.addObject(simpleEnvironment);
 
         if (SHOW_GUI) {
@@ -504,106 +456,6 @@ public class Simulator implements Runnable {
         paused = !paused;
     }
 
-    private AbstractFixedWing buildAvyAera(
-        double prop_arm_length_m, // default 0.33 / 2
-        double prop_tail_length_m, // default 0.33
-        double rotor_full_thrust_n, // default 4
-        double back_rotor_full_thrust,
-        double rotor_full_torque_n, // default 0.05
-        double mass_kg // default 0.9
-        ) {
-        Vector3d gc = new Vector3d(0.0, 0.0, 0.0);  // gravity center
-        AbstractFixedWing vehicle = new AVYAera(world, VEHICLE_MODEL_FW, prop_arm_length_m, prop_tail_length_m, rotor_full_thrust_n, back_rotor_full_thrust, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
-        Matrix3d I = new Matrix3d();
-        // Moments of inertia
-        double default_mass = 0.9; // Used for inertia scaling
-        double mass_scaling = mass_kg / default_mass;
-
-        I.m00 = 0.023 * mass_scaling;  // X
-        I.m11 = 0.02 * mass_scaling;  // Y
-        I.m22 = 0.033 * mass_scaling;  // Z
-        I.m02 = 0.02 * mass_scaling;
-        I.m20 = 0.006 * mass_scaling;
-
-        vehicle.setMomentOfInertia(I);
-        vehicle.setMass(mass_kg);
-        vehicle.setDragMove(0.01);
-        SimpleSensors sensors = new SimpleSensors();
-        sensors.setGPSInterval(50);
-        sensors.setGPSDelay(200);
-        sensors.setNoise_Acc(0.05f);
-        sensors.setNoise_Gyo(0.01f);
-        sensors.setNoise_Mag(0.005f);
-        sensors.setNoise_Prs(0.1f);
-        vehicle.setSensors(sensors, getSimMillis());
-        //v.setDragRotate(0.1);
-
-        return vehicle;
-    }
-
-    private AbstractMulticopter buildMulticopter(
-        double prop_arm_length_m, // default 0.33 / 2
-        double rotor_full_thrust_n, // default 4
-        double rotor_full_torque_n, // default 0.05
-        double mass_kg // default 0.8
-        ) {
-        Vector3d gc = new Vector3d(0.0, 0.0, 0.0);  // gravity center
-        AbstractMulticopter vehicle = new Quadcopter(world, vehicle_model, "x", "default",
-                                                    prop_arm_length_m , rotor_full_thrust_n, rotor_full_torque_n, 0.005, gc, SHOW_GUI);
-        Matrix3d I = new Matrix3d();
-        // Moments of inertia
-        double default_mass = 0.8; // Used for inertia scaling
-        double mass_scaling = mass_kg / default_mass;
-        I.m00 = 0.005 * mass_scaling;  // X
-        I.m11 = 0.005 * mass_scaling;   // Y
-        I.m22 = 0.009 * mass_scaling;  // Z
-        vehicle.setMomentOfInertia(I);
-        vehicle.setMass(mass_kg);
-        vehicle.setDragMove(0.01);
-        SimpleSensors sensors = new SimpleSensors();
-        sensors.setGPSInterval(50);
-        sensors.setGPSDelay(200);
-        sensors.setNoise_Acc(0.05f);
-        sensors.setNoise_Gyo(0.01f);
-        sensors.setNoise_Mag(0.005f);
-        sensors.setNoise_Prs(0.1f);
-        vehicle.setSensors(sensors, getSimMillis());
-        //v.setDragRotate(0.1);
-
-        return vehicle;
-    }
-
-    // 200mm, 250g small quad X "Leora" with AutoQuad style layout (clockwise from front)
-    private AbstractMulticopter buildAQ_leora() {
-        Vector3d gc = new Vector3d(0.0, 0.0, 0.0);  // gravity center
-        AbstractMulticopter vehicle = new Quadcopter(world, vehicle_model, "x", "cw_fr", 0.1, 1.35,
-                                                     0.02, 0.0005, gc, SHOW_GUI);
-
-        Matrix3d I = new Matrix3d();
-        // Moments of inertia
-        I.m00 = 0.0017;  // X
-        I.m11 = 0.0017;  // Y
-        I.m22 = 0.002;   // Z
-
-        vehicle.setMomentOfInertia(I);
-        vehicle.setMass(0.25);
-        vehicle.setDragMove(0.01);
-        //v.setDragRotate(0.1);
-
-        SimpleSensors sensors = new SimpleSensors();
-        sensors.setGPSInterval(50);
-        sensors.setGPSDelay(0);  // [ms]
-        //sensors.setPressureAltOffset(world.getGlobalReference().alt);
-        sensors.setNoise_Acc(0.02f);
-        sensors.setNoise_Gyo(0.001f);
-        sensors.setNoise_Mag(0.005f);
-        sensors.setNoise_Prs(0.01f);
-
-        vehicle.setSensors(sensors, getSimMillis());
-
-        return vehicle;
-    }
-
     private CameraGimbal2D buildGimbal() {
         CameraGimbal2D g = new CameraGimbal2D(world, DEFAULT_GIMBAL_MODEL, SHOW_GUI);
         g.setBaseObject(vehicle);
@@ -811,23 +663,18 @@ public class Simulator implements Runnable {
                     continue;
                 }
             }
-            else if (arg.equalsIgnoreCase("-drone-config")) {
+            else if (arg.equalsIgnoreCase("-drone-config-file")) {
                 if (i < args.length) {
                     try {
                         String nextArg = args[i++];
-                        JsonReader jsonReader = Json.createReader(new StringReader(nextArg));
-                        JsonObject obj = jsonReader.readObject();
-                        drone_configuration = populate_drone_config(obj);
-                        jsonReader.close();
-                        System.out.println("Loaded non-default drone config:");
-                        System.out.println(drone_configuration);
+                        drone_config_file = nextArg;
                     } catch(Exception e) {
-                        System.err.println("Tried to parse -drone-config parameter (JSON Dict) but failed. Aborting...");
+                        System.err.println("Tried to parse -drone-config-file parameter (JSON Dict) but failed. Aborting...");
                         System.err.println(e);
                         return;
                     }
                 } else {
-                    System.err.println("When passing -drone-config as argument, a json dictionary is expected afterwards.");
+                    System.err.println("When passing -drone-config-file as argument, a string is expected afterwards.");
                     return;
                 }
             }

@@ -1,16 +1,17 @@
 package me.drton.jmavsim.vehicle;
-
 import me.drton.jmavsim.Rotor;
+import me.drton.jmavsim.SimpleSensors;
 import me.drton.jmavsim.World;
-
-import java.util.HashMap;
 import java.util.Map;
-
+import javax.json.JsonNumber;
+import javax.json.JsonObject;
+import javax.vecmath.Matrix3d;
+import javax.vecmath.Vector3d;
 import javax.vecmath.Matrix3d;
 import javax.vecmath.Vector3d;
 import static java.util.Map.entry;    
 
-public class AVYAera extends AbstractFixedWing {
+public class EVTOLFixedWing extends AbstractFixedWing {
 
     private final int VTOL_ROTOR_N = 4;
     private final int PUSHER_ROTOR_N = 1;
@@ -20,51 +21,60 @@ public class AVYAera extends AbstractFixedWing {
     private static final double M_B = 0.9;
     private static final double M_S = 0.22;
 
-    private static final APM AERO_DATA = new APM(Map.ofEntries(
-        entry("m_CL_0",0.0389),
-        entry("m_CL_alpha",3.2684),
-        entry("m_CL_delta_e",0.7237),
-        entry("m_CL_q",6.1523),
-        entry("m_CD_0",0.0208),
-        entry("m_CD_alpha",0.0084),
-        entry("m_CD_alpha2",1.3225),
-        entry("m_CD_delta_e2",0.2),
-        entry("m_CD_beta2",0.0796),
-        entry("m_CD_beta",-0.0001),
-        entry("m_CD_q",0.0),
-        entry("m_CS_0",0.0),
-        entry("m_CS_beta",-0.1285),
-        entry("m_CS_delta_a",0.0299),
-        entry("m_CS_delta_r",0.0),
-        entry("m_CS_p",-0.0292),
-        entry("m_CS_r",-0.0355),
-        entry("m_Cm_0",-0.0112),
-        entry("m_Cm_alpha",-0.2625),
-        entry("m_Cm_delta_e",-0.2845),
-        entry("m_Cm_q",-1.8522),
-        entry("m_Cl_0",0.0),
-        entry("m_Cl_beta",-0.0345),
-        entry("m_Cl_delta_a",0.182),
-        entry("m_Cl_delta_r",0.0),
-        entry("m_Cl_p",-0.3318),
-        entry("m_Cl_r",0.0304),
-        entry("m_Cn_0",0.0),
-        entry("m_Cn_beta",0.0252),
-        entry("m_Cn_delta_a",-0.0102),
-        entry("m_Cn_delta_r",0.0),
-        entry("m_Cn_p",0.0),
-        entry("m_Cn_r",-0.0192)
-    ));
-
     // -----
 
     private Vector3d[] vtolRotorPositions = new Vector3d[VTOL_ROTOR_N];
     private int[] vtolRotorRotations = new int[VTOL_ROTOR_N];
     private Vector3d[] pusherRotorPositions = new Vector3d[PUSHER_ROTOR_N];
     private int[] pusherRotorRotations = new int[PUSHER_ROTOR_N];
-    
-    public AVYAera(
+
+    public static EVTOLFixedWing fromJSONObject(World w, boolean showGui, JsonObject obj) {
+        
+        JsonObject main_config = requiredJsonObject(obj, AbstractVehicle.MAIN_PARAMS_KEY);
+        double mass = requiredDoubleValue(main_config, AbstractMulticopter.MASS_KEY);
+        double armLength = requiredDoubleValue(main_config, AbstractMulticopter.ARM_LENGTH_KEY);
+        double maxThrust = requiredDoubleValue(main_config, AbstractMulticopter.MAX_THRUST_KEY);
+        double maxTorque = requiredDoubleValue(main_config, AbstractMulticopter.MAX_TORQUE_KEY);
+        double dragMove = optionalDoubleValue(main_config, AbstractMulticopter.DRAG_MOVE_KEY, 0.01);
+        double tailLength = optionalDoubleValue(main_config, AbstractFixedWing.TAIL_LENGTH_KEY, 0.4);
+        double maxBackThrust = requiredDoubleValue(main_config, AbstractFixedWing.MAX_BACK_PROPELLER_THRUST_KEY);
+
+        Matrix3d inertia_matrix = partseInertiaMatrix(main_config);
+        APM aeroData = AbstractFixedWing.parseAeroData(requiredJsonObject(obj, AbstractFixedWing.AERODYNAMICS_KEY));
+
+        SimpleSensors sensors = new SimpleSensors();
+        sensors.setGPSInterval(50);
+        sensors.setGPSDelay(200);
+        sensors.setNoise_Acc(0.05f);
+        sensors.setNoise_Gyo(0.01f);
+        sensors.setNoise_Mag(0.005f);
+        sensors.setNoise_Prs(0.1f);
+        
+        EVTOLFixedWing q = new EVTOLFixedWing(
+            w,
+            aeroData,
+            AbstractFixedWing.MODEL_NAME,
+            armLength,
+            tailLength,
+            maxThrust,
+            maxBackThrust,
+            maxTorque,
+            AbstractMulticopter.ROTOR_TIME_CONSTANT,
+            AbstractMulticopter.ROTOR_OFFSET,
+            showGui
+        );
+        
+        q.setMass(mass);
+        q.setMomentOfInertia(inertia_matrix);
+        q.setDragMove(dragMove);
+        q.setSensors(sensors, 0);
+
+        return q;
+    }
+
+    public EVTOLFixedWing(
         World world,
+        APM aeroData,
         String modelName,
         double armLength,
         double tailLength,
@@ -75,7 +85,7 @@ public class AVYAera extends AbstractFixedWing {
         Vector3d rotorsOffset,
         boolean showGui
         ) {
-        super(world, modelName, showGui, M_C, M_B, M_S, AERO_DATA);
+        super(world, modelName, showGui, M_C, M_B, M_S, aeroData);
 
         int i;
 

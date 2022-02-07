@@ -6,6 +6,10 @@ import me.drton.jmavsim.SimpleEnvironment;
 import me.drton.jmavsim.World;
 
 import javax.vecmath.Vector3d;
+
+import java.util.Map;
+
+import javax.json.JsonObject;
 import javax.vecmath.Matrix3d;
 import javax.vecmath.Vector2d;
 
@@ -13,6 +17,12 @@ import javax.vecmath.Vector2d;
  * Abstract fixed wing vehicle class
  */
 public abstract class AbstractFixedWing extends AbstractMulticopter {
+
+    protected static final String MODEL_NAME = "models/cessna.obj";
+    protected static final String AERODYNAMICS_KEY = "aerodynamics";
+    protected static final String TAIL_LENGTH_KEY = "tail_length";
+    protected static final String MAX_BACK_PROPELLER_THRUST_KEY = "max_back_propeller_thrust";
+
     protected Rotor[] pusher_rotors;
     private double[] ailerons_control = new double[]{0.0, 0.0};
     private double elevator_control = 0.0;
@@ -24,6 +34,47 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     private double m_S = 0.0;
     private APM aero_data;
 
+    protected static APM parseAeroData(JsonObject obj) {
+        return new APM(Map.ofEntries(
+            Map.entry("wing_span",AbstractVehicle.optionalDoubleValue(obj, "wing_span", 0.0)),
+            Map.entry("wing_area",AbstractVehicle.optionalDoubleValue(obj, "wing_area", 0.0)),
+            Map.entry("mean_aerodynamic_chord",AbstractVehicle.optionalDoubleValue(obj, "mean_aerodynamic_chord", 0.0)),
+            Map.entry("m_CL_0",AbstractVehicle.optionalDoubleValue(obj, "m_CL_0", 0.0)),
+            Map.entry("m_CL_alpha",AbstractVehicle.optionalDoubleValue(obj, "m_CL_alpha", 0.0)),
+            Map.entry("m_CL_delta_e",AbstractVehicle.optionalDoubleValue(obj, "m_CL_delta_e", 0.0)),
+            Map.entry("m_CL_q",AbstractVehicle.optionalDoubleValue(obj, "m_CL_q", 0.0)),
+            Map.entry("m_CD_0",AbstractVehicle.optionalDoubleValue(obj, "m_CD_0", 0.0)),
+            Map.entry("m_CD_alpha",AbstractVehicle.optionalDoubleValue(obj, "m_CD_alpha", 0.0)),
+            Map.entry("m_CD_alpha2",AbstractVehicle.optionalDoubleValue(obj, "m_CD_alpha2", 0.0)),
+            Map.entry("m_CD_delta_e2",AbstractVehicle.optionalDoubleValue(obj, "m_CD_delta_e2", 0.0)),
+            Map.entry("m_CD_beta2",AbstractVehicle.optionalDoubleValue(obj, "m_CD_beta2", 0.0)),
+            Map.entry("m_CD_beta",AbstractVehicle.optionalDoubleValue(obj, "m_CD_beta", 0.0)),
+            Map.entry("m_CD_q",AbstractVehicle.optionalDoubleValue(obj, "m_CD_q", 0.0)),
+            Map.entry("m_CS_0",AbstractVehicle.optionalDoubleValue(obj, "m_CS_0", 0.0)),
+            Map.entry("m_CS_beta",AbstractVehicle.optionalDoubleValue(obj, "m_CS_beta", 0.0)),
+            Map.entry("m_CS_delta_a",AbstractVehicle.optionalDoubleValue(obj, "m_CS_delta_a", 0.0)),
+            Map.entry("m_CS_delta_r",AbstractVehicle.optionalDoubleValue(obj, "m_CS_delta_r", 0.0)),
+            Map.entry("m_CS_p",AbstractVehicle.optionalDoubleValue(obj, "m_CS_p", 0.0)),
+            Map.entry("m_CS_r",AbstractVehicle.optionalDoubleValue(obj, "m_CS_r", 0.0)),
+            Map.entry("m_Cm_0",AbstractVehicle.optionalDoubleValue(obj, "m_Cm_0", 0.0)),
+            Map.entry("m_Cm_alpha",AbstractVehicle.optionalDoubleValue(obj, "m_Cm_alpha", 0.0)),
+            Map.entry("m_Cm_delta_e",AbstractVehicle.optionalDoubleValue(obj, "m_Cm_delta_e", 0.0)),
+            Map.entry("m_Cm_q",AbstractVehicle.optionalDoubleValue(obj, "m_Cm_q", 0.0)),
+            Map.entry("m_Cl_0",AbstractVehicle.optionalDoubleValue(obj, "m_Cl_0", 0.0)),
+            Map.entry("m_Cl_beta",AbstractVehicle.optionalDoubleValue(obj, "m_Cl_beta", 0.0)),
+            Map.entry("m_Cl_delta_a",AbstractVehicle.optionalDoubleValue(obj, "m_Cl_delta_a", 0.0)),
+            Map.entry("m_Cl_delta_r",AbstractVehicle.optionalDoubleValue(obj, "m_Cl_delta_r", 0.0)),
+            Map.entry("m_Cl_p",AbstractVehicle.optionalDoubleValue(obj, "m_Cl_p", 0.0)),
+            Map.entry("m_Cl_r",AbstractVehicle.optionalDoubleValue(obj, "m_Cl_r", 0.0)),
+            Map.entry("m_Cn_0",AbstractVehicle.optionalDoubleValue(obj, "m_Cn_0", 0.0)),
+            Map.entry("m_Cn_beta",AbstractVehicle.optionalDoubleValue(obj, "m_Cn_beta", 0.0)),
+            Map.entry("m_Cn_delta_a",AbstractVehicle.optionalDoubleValue(obj, "m_Cn_delta_a", 0.0)),
+            Map.entry("m_Cn_delta_r",AbstractVehicle.optionalDoubleValue(obj, "m_Cn_delta_r", 0.0)),
+            Map.entry("m_Cn_p",AbstractVehicle.optionalDoubleValue(obj, "m_Cn_p", 0.0)),
+            Map.entry("m_Cn_r",AbstractVehicle.optionalDoubleValue(obj, "m_Cn_r", 0.0))
+        ));
+    }
+    
     public AbstractFixedWing(World world, String modelName, boolean showGui, double m_c, double m_b, double m_S, APM aero_data) {
         super(world, modelName, showGui);
 

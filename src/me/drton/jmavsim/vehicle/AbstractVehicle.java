@@ -7,11 +7,16 @@ import me.drton.jmavsim.ReportingObject;
 import me.drton.jmavsim.Sensors;
 import me.drton.jmavsim.World;
 
+import javax.json.JsonNumber;
+import javax.json.JsonObject;
+import javax.json.JsonValue;
+import javax.vecmath.Matrix3d;
 import javax.vecmath.Vector3d;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 
 /**
  * Abstract vehicle class, should be used for creating vehicle of any type.
@@ -19,9 +24,61 @@ import java.util.List;
  * 'update()' method of AbstractVehicle must be called from child class implementation if overridden.
  */
 public abstract class AbstractVehicle extends DynamicObject implements ReportingObject {
+
+    protected static final String MAIN_PARAMS_KEY = "drone_config";
+
     protected List<Double> control = Collections.emptyList();
     protected Sensors sensors = null;
 
+    protected static JsonObject requiredJsonObject(JsonObject obj, String key) {
+        try {
+            return obj.getJsonObject(key);
+        } catch(Exception e) {
+            System.out.println("Could not retrieve value for key '"+ key +"'");
+            System.out.println(e);
+            System.exit(1);
+            return null;
+        }
+    }
+
+    protected static double requiredDoubleValue(JsonObject obj, String key) {
+        try {
+            return obj.getJsonNumber(key).doubleValue();
+        } catch(Exception e) {
+            System.out.println("Could not retrieve value for key '"+ key +"'");
+            System.out.println(e);
+            System.exit(1);
+            return 0.0;
+        }
+    }
+
+    protected static double optionalDoubleValue(JsonObject obj, String key, double defaultVal) {
+        try {
+            JsonNumber v = obj.getJsonNumber(key);
+            if (v != null) {
+                return v.doubleValue();
+            } return defaultVal;
+        } catch(Exception e) {
+            System.out.println("Could not retrieve value for key '"+ key +"'");
+            System.out.println(e);
+            return defaultVal;
+        }
+    }
+
+    protected static Matrix3d partseInertiaMatrix(JsonObject obj) {
+        Matrix3d inertia_matrix = new Matrix3d();
+        inertia_matrix.m00 = AbstractVehicle.optionalDoubleValue(obj, "Ixx", 0.0);
+        inertia_matrix.m01 = AbstractVehicle.optionalDoubleValue(obj, "Ixy", 0.0);
+        inertia_matrix.m02 = AbstractVehicle.optionalDoubleValue(obj, "Ixz", 0.0);
+        inertia_matrix.m10 = AbstractVehicle.optionalDoubleValue(obj, "Iyx", 0.0);
+        inertia_matrix.m11 = AbstractVehicle.optionalDoubleValue(obj, "Iyy", 0.0);
+        inertia_matrix.m12 = AbstractVehicle.optionalDoubleValue(obj, "Iyz", 0.0);
+        inertia_matrix.m20 = AbstractVehicle.optionalDoubleValue(obj, "Izx", 0.0);
+        inertia_matrix.m21 = AbstractVehicle.optionalDoubleValue(obj, "Izy", 0.0);
+        inertia_matrix.m22 = AbstractVehicle.optionalDoubleValue(obj, "Izz", 0.0);
+        return inertia_matrix;
+    }
+    
     public AbstractVehicle(World world, String modelName, boolean showGui) {
         super(world, showGui);
         if (showGui) {

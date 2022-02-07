@@ -15,6 +15,15 @@ public abstract class AbstractMulticopter extends AbstractVehicle {
     private double dragRotate = 0.0;
     protected Rotor[] rotors;
 
+    protected static final String MASS_KEY = "mass";
+    protected static final String ARM_LENGTH_KEY = "arm_length";
+    protected static final String MAX_THRUST_KEY = "max_thrust";
+    protected static final String MAX_TORQUE_KEY = "max_torque";
+    protected static final String DRAG_MOVE_KEY = "drag_move";
+
+    protected static final double ROTOR_TIME_CONSTANT = 0.005;
+    protected static final Vector3d ROTOR_OFFSET = new Vector3d(0.0, 0.0, 0.0);
+
     public AbstractMulticopter(World world, String modelName, boolean showGui) {
         super(world, modelName, showGui);
         rotors = new Rotor[getRotorsNum()];

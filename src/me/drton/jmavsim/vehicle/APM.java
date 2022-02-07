@@ -3,6 +3,10 @@ import java.util.Map;
 
 public class APM {
 
+    public double wing_span = 0.0;
+    public double wing_area = 0.0;
+    public double mean_aerodynamic_chord = 0.0;
+
     // Force and Moments coefficients at rest
     public double m_CD_0 = 0., m_CS_0 = 0., m_CL_0 = 0.; //!< \brief Resultant Aerodynamic Forces Coefficients clean configuration
     public double m_Cl_0 = 0., m_Cm_0 = 0., m_Cn_0 = 0.; //!< \brief Resultant Aerodynamic Moments Coefficients clean configuration
@@ -18,6 +22,9 @@ public class APM {
     public double m_Cn_beta = 0., m_Cn_p = 0., m_Cn_r = 0., m_Cn_delta_a = 0., m_Cn_delta_r = 0.;
 
     public APM(Map<String, Double> m) {
+        this.wing_span = m.containsKey("wing_span") ? m.get("wing_span") : 0.0;
+        this.wing_area = m.containsKey("wing_area") ? m.get("wing_area") : 0.0;
+        this.mean_aerodynamic_chord = m.containsKey("mean_aerodynamic_chord") ? m.get("mean_aerodynamic_chord") : 0.0;
         this.m_CD_0 = m.containsKey("m_CD_0") ? m.get("m_CD_0") : 0.0;
         this.m_CS_0 = m.containsKey("m_CS_0") ? m.get("m_CS_0") : 0.0;
         this.m_CL_0 = m.containsKey("m_CL_0") ? m.get("m_CL_0") : 0.0;

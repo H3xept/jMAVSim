@@ -21,25 +21,29 @@ public class VehicleFactory {
         this.showGUI = showGUI;
     }
 
-    private AbstractFixedWing evtolFwFromObject(JsonObject obj) {
+    private AbstractFixedWing evtolFwFromObject(JsonObject obj, double payload_mass) {
         System.out.println("Building EVTOL FixedWing");
-        return EVTOLFixedWing.fromJSONObject(this.world, this.showGUI, obj);
+        return EVTOLFixedWing.fromJSONObject(this.world, this.showGUI, obj, payload_mass);
     }
 
-    private AbstractMulticopter multicopterFromObject(JsonObject obj) {
+    private AbstractMulticopter multicopterFromObject(JsonObject obj, double payload_mass) {
         System.out.println("Building Multicopter");
-        return Quadcopter.fromJSONObject(this.world, this.showGUI, obj);
+        return Quadcopter.fromJSONObject(this.world, this.showGUI, obj, payload_mass);
     }
 
     public AbstractVehicle vehicleFromFile(String filename) {
+        String payload_mass_s = System.getenv("PX4_SIM_SPEED_FACTOR");
+        double payload_mass = Double.parseDouble(payload_mass_s != null ? payload_mass_s : "0");
+
         try (JsonReader reader = Json.createReader(new FileReader(filename))) {
             JsonObject obj = reader.readObject();
             System.out.println("Successfully read drone file '"  + filename +"'");
+            System.out.println("Payload mass is "+ payload_mass_s + "kg.");
             switch (obj.getString(TYPE_KEY)) {
                 case DRONE_TYPE_QUADCOPTER:
-                    return this.multicopterFromObject(obj);
+                    return this.multicopterFromObject(obj, payload_mass);
                 case DRONE_TYPE_EVTOL_FW:
-                    return this.evtolFwFromObject(obj);
+                    return this.evtolFwFromObject(obj, payload_mass);
                 default:
                     throw new Exception("Unknown drone type!");
             }

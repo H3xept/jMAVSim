@@ -24,7 +24,7 @@ public class EVTOLFixedWing extends AbstractFixedWing {
     private Vector3d[] pusherRotorPositions = new Vector3d[PUSHER_ROTOR_N];
     private int[] pusherRotorRotations = new int[PUSHER_ROTOR_N];
 
-    public static EVTOLFixedWing fromJSONObject(World w, boolean showGui, JsonObject obj) {
+    public static EVTOLFixedWing fromJSONObject(World w, boolean showGui, JsonObject obj, double payload_mass) {
         
         JsonObject main_config = requiredJsonObject(obj, AbstractVehicle.MAIN_PARAMS_KEY);
         double mass = requiredDoubleValue(main_config, AbstractMulticopter.MASS_KEY);
@@ -60,7 +60,7 @@ public class EVTOLFixedWing extends AbstractFixedWing {
             showGui
         );
         
-        q.setMass(mass);
+        q.setMass(mass + payload_mass);
         q.setMomentOfInertia(inertia_matrix);
         q.setDragMove(dragMove);
         q.setSensors(sensors, 0);
@@ -81,7 +81,7 @@ public class EVTOLFixedWing extends AbstractFixedWing {
         Vector3d rotorsOffset,
         boolean showGui
         ) {
-        super(world, modelName, showGui, aeroData.mean_aerodynamic_chord, aeroData.wing_span, aeroData.wing_area, aeroData);
+        super(world, modelName, showGui, aeroData);
 
         int i;
 

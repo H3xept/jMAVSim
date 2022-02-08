@@ -19,7 +19,7 @@ public class Quadcopter extends AbstractMulticopter {
     private int[] rotorRotations = new int[rotorsNum];
     private static final String MODEL_NAME = "models/3dr_arducopter_quad_x.obj";
 
-    public static Quadcopter fromJSONObject(World w, boolean showGui, JsonObject obj) {
+    public static Quadcopter fromJSONObject(World w, boolean showGui, JsonObject obj, double payload_mass) {
         
         JsonObject main_params = obj.getJsonObject(AbstractVehicle.MAIN_PARAMS_KEY);
         double mass = main_params.getJsonNumber(AbstractMulticopter.MASS_KEY).doubleValue();
@@ -46,7 +46,7 @@ public class Quadcopter extends AbstractMulticopter {
             AbstractMulticopter.ROTOR_TIME_CONSTANT,
             AbstractMulticopter.ROTOR_OFFSET, showGui
         );
-        q.setMass(mass);
+        q.setMass(mass + payload_mass);
         q.setMomentOfInertia(inertia_matrix);
         q.setDragMove(dragMove);
         q.setSensors(sensors, 0);

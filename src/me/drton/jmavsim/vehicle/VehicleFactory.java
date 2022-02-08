@@ -33,9 +33,14 @@ public class VehicleFactory {
 
     public AbstractVehicle vehicleFromFile(String filename) {
         String payload_mass_s = System.getenv("PAYLOAD_MASS");
+        String available_drones_dir = System.getenv("AVAILABLE_DRONES_DIR");
+        if (available_drones_dir == null) {
+            System.out.println("Could not locate available drones directory. Environment variable AVAILABLE_DRONES_DIR is not defined.");
+            System.exit(1);
+        }
         double payload_mass = Double.parseDouble(payload_mass_s != null ? payload_mass_s : "0");
 
-        try (JsonReader reader = Json.createReader(new FileReader(filename))) {
+        try (JsonReader reader = Json.createReader(new FileReader(available_drones_dir + "/" + filename))) {
             JsonObject obj = reader.readObject();
             System.out.println("Successfully read drone file '"  + filename +"'");
             System.out.println("Payload mass is "+ payload_mass_s + "kg.");

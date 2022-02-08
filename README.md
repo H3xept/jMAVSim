@@ -117,6 +117,9 @@ To provide weather data, store data points in JSON format.
 The simulator currently supports wind and temperature data. And example file is provided in the root folder under the name `example_weather_file.json`.
 To load it in the simulatior simply add the argument `-weather-data <filename>`.
 
+### Payload Mass
+
+To specify payload mass for the drone (will be summed to the original drone mass) use the `PAYLOAD_MASS` environment variable.
 
 ### Troubleshooting ###
 

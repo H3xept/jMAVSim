@@ -32,7 +32,7 @@ public class VehicleFactory {
     }
 
     public AbstractVehicle vehicleFromFile(String filename) {
-        String payload_mass_s = System.getenv("PX4_SIM_SPEED_FACTOR");
+        String payload_mass_s = System.getenv("PAYLOAD_MASS");
         double payload_mass = Double.parseDouble(payload_mass_s != null ? payload_mass_s : "0");
 
         try (JsonReader reader = Json.createReader(new FileReader(filename))) {

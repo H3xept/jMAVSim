@@ -1,5 +1,6 @@
 package me.drton.jmavsim.vehicle;
 
+import me.drton.jmavsim.Propeller;
 import me.drton.jmavsim.Rotor;
 import me.drton.jmavsim.Sensors;
 import me.drton.jmavsim.SimpleSensors;
@@ -22,9 +23,10 @@ public class Quadcopter extends AbstractMulticopter {
     public static Quadcopter fromJSONObject(World w, boolean showGui, JsonObject obj, double payload_mass) {
         
         JsonObject main_params = obj.getJsonObject(AbstractVehicle.MAIN_PARAMS_KEY);
+        JsonObject propeller_details = requiredJsonObject(main_params, Propeller.PROPELLER_KEY);
         double mass = main_params.getJsonNumber(AbstractMulticopter.MASS_KEY).doubleValue();
         double armLength = main_params.getJsonNumber(AbstractMulticopter.ARM_LENGTH_KEY).doubleValue();
-        double maxThrust = main_params.getJsonNumber(AbstractMulticopter.MAX_THRUST_KEY).doubleValue();
+        double maxRPM = main_params.getJsonNumber(AbstractMulticopter.MAX_RPM_KEY).doubleValue();
         double maxTorque = main_params.getJsonNumber(AbstractMulticopter.MAX_TORQUE_KEY).doubleValue();
         double dragMove = optionalDoubleValue(main_params, AbstractMulticopter.DRAG_MOVE_KEY, 0.01);
 
@@ -41,10 +43,12 @@ public class Quadcopter extends AbstractMulticopter {
         Quadcopter q = new Quadcopter(
             w,
             armLength,
-            maxThrust,
+            maxRPM,
             maxTorque,
             AbstractMulticopter.ROTOR_TIME_CONSTANT,
-            AbstractMulticopter.ROTOR_OFFSET, showGui
+            AbstractMulticopter.ROTOR_OFFSET,
+            Propeller.fromJSONObject(propeller_details),
+            showGui
         );
         q.setMass(mass + payload_mass);
         q.setMomentOfInertia(inertia_matrix);
@@ -60,15 +64,15 @@ public class Quadcopter extends AbstractMulticopter {
      * @param world          world where to place the vehicle
      * @param modelName      filename of model to load, in .obj format
      * @param armLength      length of arm from center [m]
-     * @param rotorThrust    full thrust of one rotor [N]
+     * @param rotorRPM       max RPM for one rotor [Revolutions per minute]
      * @param rotorTorque    torque at full thrust of one rotor in [Nm]
      * @param rotorTimeConst spin-up time of rotor [s]
      * @param rotorsOffset   rotors positions offset from gravity center
      * @param showGui        false if the GUI has been disabled
      */
-    public Quadcopter(World world, double armLength, double rotorThrust, double rotorTorque,
-                      double rotorTimeConst, Vector3d rotorsOffset, boolean showGui) {
-        super(world, MODEL_NAME, showGui);
+    public Quadcopter(World world, double armLength, double rotorMaxRPM, double rotorTorque,
+                      double rotorTimeConst, Vector3d rotorsOffset, Propeller propeller, boolean showGui) {
+        super(world, MODEL_NAME, showGui, propeller);
 
         int i;
 
@@ -89,7 +93,7 @@ public class Quadcopter extends AbstractMulticopter {
         for (i = 0; i < rotors.length; i++) {
             rotorPositions[i].add(rotorsOffset);
             Rotor rotor = rotors[i];
-            rotor.setFullThrust(rotorThrust);
+            rotor.setMaxRPM(rotorMaxRPM);
             rotor.setFullTorque(rotorTorque * rotorRotations[i]);
             rotor.setTimeConstant(rotorTimeConst);
         }

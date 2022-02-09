@@ -43,7 +43,13 @@ public class VehicleFactory {
         try (JsonReader reader = Json.createReader(new FileReader(available_drones_dir + "/" + filename))) {
             JsonObject obj = reader.readObject();
             System.out.println("Successfully read drone file '"  + filename +"'");
-            System.out.println("Payload mass is "+ payload_mass_s + "kg.");
+            
+            if (payload_mass_s == null) {
+                System.out.println("Drone is flying *without* payload.");
+            } else {
+                System.out.println("Payload mass is "+ payload_mass_s + "kg.");
+            }
+            
             switch (obj.getString(TYPE_KEY)) {
                 case DRONE_TYPE_QUADCOPTER:
                     return this.multicopterFromObject(obj, payload_mass);

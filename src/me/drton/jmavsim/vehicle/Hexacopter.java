@@ -53,7 +53,8 @@ public class Hexacopter extends AbstractMulticopter {
         for (int i = 0; i < rotors.length; i++) {
             rotorPositions[i].add(rotorsOffset);
             Rotor rotor = rotors[i];
-            rotor.setFullThrust(rotorThrust);
+            // rotor.setFullThrust(rotorThrust);
+            rotor.setMaxRPM(13000);
             rotor.setFullTorque((i == 1 || i == 3 || i == 4) ? -rotorTorque : rotorTorque);
             rotor.setTimeConstant(rotorTimeConst);
         }

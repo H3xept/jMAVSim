@@ -1,4 +1,5 @@
 package me.drton.jmavsim.vehicle;
+import me.drton.jmavsim.Propeller;
 import me.drton.jmavsim.Rotor;
 import me.drton.jmavsim.SimpleSensors;
 import me.drton.jmavsim.World;
@@ -15,7 +16,6 @@ public class EVTOLFixedWing extends AbstractFixedWing {
 
     private final int VTOL_ROTOR_N = 4;
     private final int PUSHER_ROTOR_N = 1;
-    private static final String DIVIDER = "=======================";
 
     // -----
 
@@ -29,11 +29,11 @@ public class EVTOLFixedWing extends AbstractFixedWing {
         JsonObject main_config = requiredJsonObject(obj, AbstractVehicle.MAIN_PARAMS_KEY);
         double mass = requiredDoubleValue(main_config, AbstractMulticopter.MASS_KEY);
         double armLength = requiredDoubleValue(main_config, AbstractMulticopter.ARM_LENGTH_KEY);
-        double maxThrust = requiredDoubleValue(main_config, AbstractMulticopter.MAX_THRUST_KEY);
+        double maxRPM = requiredDoubleValue(main_config, AbstractMulticopter.MAX_RPM_KEY);
         double maxTorque = requiredDoubleValue(main_config, AbstractMulticopter.MAX_TORQUE_KEY);
         double dragMove = optionalDoubleValue(main_config, AbstractMulticopter.DRAG_MOVE_KEY, 0.01);
         double tailLength = optionalDoubleValue(main_config, AbstractFixedWing.TAIL_LENGTH_KEY, 0.4);
-        double maxBackThrust = requiredDoubleValue(main_config, AbstractFixedWing.MAX_BACK_PROPELLER_THRUST_KEY);
+        Propeller propeller = Propeller.fromJSONObject(requiredJsonObject(main_config, Propeller.PROPELLER_KEY));
 
         Matrix3d inertia_matrix = partseInertiaMatrix(main_config);
         APM aeroData = AbstractFixedWing.parseAeroData(requiredJsonObject(obj, AbstractFixedWing.AERODYNAMICS_KEY));
@@ -52,11 +52,11 @@ public class EVTOLFixedWing extends AbstractFixedWing {
             AbstractFixedWing.MODEL_NAME,
             armLength,
             tailLength,
-            maxThrust,
-            maxBackThrust,
+            maxRPM,
             maxTorque,
             AbstractMulticopter.ROTOR_TIME_CONSTANT,
             AbstractMulticopter.ROTOR_OFFSET,
+            propeller,
             showGui
         );
         
@@ -74,14 +74,14 @@ public class EVTOLFixedWing extends AbstractFixedWing {
         String modelName,
         double armLength,
         double tailLength,
-        double rotorThrust,
-        double backRotorThrust,
+        double rotorMaxRPM,
         double rotorTorque,
         double rotorTimeConst,
         Vector3d rotorsOffset,
+        Propeller propeller,
         boolean showGui
         ) {
-        super(world, modelName, showGui, aeroData);
+        super(world, modelName, showGui, aeroData, propeller);
 
         int i;
 
@@ -96,7 +96,7 @@ public class EVTOLFixedWing extends AbstractFixedWing {
         pusherRotorPositions[0] = new Vector3d(-tailLength, 0.0, 0.0);
         pusherRotorRotations[0] = 1;
         Rotor pusherRotor = pusher_rotors[0];
-        pusherRotor.setFullThrust(backRotorThrust);
+        pusherRotor.setMaxRPM(rotorMaxRPM);
         pusherRotor.setFullTorque(rotorTorque * pusherRotorRotations[0]);
         pusherRotor.setTimeConstant(rotorTimeConst);
 
@@ -109,7 +109,7 @@ public class EVTOLFixedWing extends AbstractFixedWing {
         for (i = 0; i < rotors.length; i++) {
             vtolRotorPositions[i].add(rotorsOffset);
             Rotor rotor = rotors[i];
-            rotor.setFullThrust(rotorThrust);
+            rotor.setMaxRPM(rotorMaxRPM);
             rotor.setFullTorque(rotorTorque * vtolRotorRotations[i]);
             rotor.setTimeConstant(rotorTimeConst);
         }

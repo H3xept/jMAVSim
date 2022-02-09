@@ -1,5 +1,6 @@
 package me.drton.jmavsim.vehicle;
 
+import me.drton.jmavsim.Propeller;
 import me.drton.jmavsim.ReportUtil;
 import me.drton.jmavsim.Rotor;
 import me.drton.jmavsim.World;
@@ -17,18 +18,18 @@ public abstract class AbstractMulticopter extends AbstractVehicle {
 
     protected static final String MASS_KEY = "mass";
     protected static final String ARM_LENGTH_KEY = "arm_length";
-    protected static final String MAX_THRUST_KEY = "max_thrust";
+    protected static final String MAX_RPM_KEY = "max_rpm";
     protected static final String MAX_TORQUE_KEY = "max_torque";
     protected static final String DRAG_MOVE_KEY = "drag_move";
 
     protected static final double ROTOR_TIME_CONSTANT = 0.005;
     protected static final Vector3d ROTOR_OFFSET = new Vector3d(0.0, 0.0, 0.0);
 
-    public AbstractMulticopter(World world, String modelName, boolean showGui) {
+    public AbstractMulticopter(World world, String modelName, boolean showGui, Propeller propeller) {
         super(world, modelName, showGui);
         rotors = new Rotor[getRotorsNum()];
         for (int i = 0; i < getRotorsNum(); i++) {
-            rotors[i] = new Rotor();
+            rotors[i] = new Rotor(propeller);
         }
     }
 
@@ -57,12 +58,21 @@ public abstract class AbstractMulticopter extends AbstractVehicle {
         builder.append(String.format("%s", ReportUtil.d2str(rotor.getControl())));
         builder.append(newLine);
 
+        builder.append("Motor-Propeller force constant: ");
+        builder.append(String.format("%s", ReportUtil.d2str(rotor.getKF())));
+        builder.append(" / ");
+
+        builder.append("Current RPM: ");
+        builder.append(String.format("%s", ReportUtil.d2str(rotor.getRPM())));
+        builder.append(" / ");
+
+        builder.append("Max RPM: ");
+        builder.append(String.format("%s", ReportUtil.d2str(rotor.getMaxRPM())));
+        builder.append(" / ");
+
         builder.append("Thrust: ");
         builder.append(String.format("%s", ReportUtil.d2str(rotor.getThrust())));
         builder.append(" / ");
-        builder.append(String.format("%s", ReportUtil.d2str(rotor.getFullThrust())));
-        builder.append(" [N]");
-        builder.append(newLine);
 
         builder.append("Torque: ");
         builder.append(String.format("%s", ReportUtil.d2str(rotor.getTorque())));

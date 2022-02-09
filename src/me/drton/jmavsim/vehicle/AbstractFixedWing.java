@@ -1,5 +1,6 @@
 package me.drton.jmavsim.vehicle;
 
+import me.drton.jmavsim.Propeller;
 import me.drton.jmavsim.ReportUtil;
 import me.drton.jmavsim.Rotor;
 import me.drton.jmavsim.SimpleEnvironment;
@@ -21,7 +22,6 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
     protected static final String MODEL_NAME = "models/cessna.obj";
     protected static final String AERODYNAMICS_KEY = "aerodynamics";
     protected static final String TAIL_LENGTH_KEY = "tail_length";
-    protected static final String MAX_BACK_PROPELLER_THRUST_KEY = "max_back_propeller_thrust";
 
     protected Rotor[] pusher_rotors;
     private double[] ailerons_control = new double[]{0.0, 0.0};
@@ -71,14 +71,14 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
         ));
     }
     
-    public AbstractFixedWing(World world, String modelName, boolean showGui, APM aero_data) {
-        super(world, modelName, showGui);
+    public AbstractFixedWing(World world, String modelName, boolean showGui, APM aero_data, Propeller propeller) {
+        super(world, modelName, showGui, propeller);
 
         this.aero_data = aero_data;
 
         pusher_rotors = new Rotor[getPusherRotorsNum()];
         for (int i = 0; i < getPusherRotorsNum(); i++) {
-            pusher_rotors[i] = new Rotor();
+            pusher_rotors[i] = new Rotor(propeller);
         }
     }
 
@@ -134,8 +134,6 @@ public abstract class AbstractFixedWing extends AbstractMulticopter {
 
         builder.append("Thrust: ");
         builder.append(String.format("%s", ReportUtil.d2str(rotor.getThrust())));
-        builder.append(" / ");
-        builder.append(String.format("%s", ReportUtil.d2str(rotor.getFullThrust())));
         builder.append(" [N]");
         builder.append(newLine);
 

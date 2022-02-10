@@ -111,8 +111,9 @@ public class Rotor {
     }
 
     // Blade effectiveness: (14) of https://downloads.hindawi.com/journals/ijae/2018/9632942.pdf
+    // Made smaller by 4 orders of magnitude -- not clear why!
     private double k_f(double R, double e_d, double C_t) {
-        return (1.0/16.0) * Rotor.AIR_DENSITY_IMPERIAL * Math.PI * Math.pow(R, 4) * Math.pow(e_d, 4) * C_t;
+        return (1.0/16.0) * Rotor.AIR_DENSITY_IMPERIAL * Math.PI * Math.pow(R, 4) * Math.pow(e_d, 4) * C_t * 1.0/10000.0;
     }
 
     private double getCt(double k, double theta, double e_d) {
@@ -162,7 +163,7 @@ public class Rotor {
     }
 
     private double rpmToRadS(double rpm) {
-        return rpm * 0.0010472;
+        return rpm * 0.10472;
     }
 
     public double getKF() {

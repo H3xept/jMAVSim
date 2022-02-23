@@ -211,8 +211,17 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
         msg_sensor.set("temperature", temperature);
         sensor_source |= 0b111000000;
         msg_sensor.set("pressure_alt", sensors.getPressureAlt());
-        msg_sensor.set("abs_pressure", sensors.getPressure() * 0.01);  // Pa to millibar
-        sensor_source |= 0b1101000000000;
+        msg_sensor.set("abs_pressure", sensors.getPressure() * 0.01);  // Pa to hPa
+        
+        Vector3d airSpeed = new Vector3d(vehicle.getVelocity());
+        airSpeed.scale(-1.0);
+        airSpeed.add(vehicle.getWorld().getEnvironment().getCurrentWind(vehicle.position));
+        double airspeed_mag = airSpeed.length();
+        // https://www.fxsolver.com/browse/formulas/Indicated+airspeed+%28IAS%29+-+incompressible+fluid
+        double air_density = 1.225;
+        double diff_pressure = (Math.pow(airspeed_mag, 2) * air_density) / 2 + this.vehicle.getSensors().getPressure();
+        msg_sensor.set("diff_pressure", diff_pressure*0.01);  // Pa to hPa
+        sensor_source |= 0b1111000000000;
         if (sensors.isReset()) {
             msg_sensor.set("fields_updated", (1 << 31));
             sensors.setReset(false);
@@ -245,7 +254,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
             msg_hil_state.set("vy", (int)(v3d.y * 100));
             msg_hil_state.set("vz", (int)(v3d.z * 100));
 
-            Vector3d airSpeed = new Vector3d(vehicle.getVelocity());
+            airSpeed = new Vector3d(vehicle.getVelocity());
             airSpeed.scale(-1.0);
             airSpeed.add(vehicle.getWorld().getEnvironment().getCurrentWind(vehicle.position));
             float as_mag = (float) airSpeed.length();
